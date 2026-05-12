@@ -1,11 +1,11 @@
 ---
 name: atlas-update
-description: Researches and publishes bi-weekly Atlas goal updates directly to each Atlas goal via the Atlassian Goals GraphQL API. For each goal, reads the correct goal scope, searches Slack, Confluence, Jira, and Google Drive for recent movements, then writes short bulleted and long-form updates with all relevant links and posts them with goals_createUpdate. Use when updating Atlas goals or posting bi-weekly progress updates.
+description: Researches and publishes monthly Atlas goal updates directly to each Atlas goal via the Atlassian Goals GraphQL API. For each goal, reads the correct goal scope, searches Slack, Confluence, Jira, and Google Drive for recent movements, then writes short bulleted and long-form updates with all relevant links and posts them with goals_createUpdate. Use when updating Atlas goals or posting monthly progress updates.
 ---
 
 # Atlas Goal Update Skill
 
-This skill produces bi-weekly Atlas goal updates for the XLA Pages project. For each goal it researches recent activity, drafts a short bulleted form and a long form with all links, then **posts the update directly onto the Atlas goal** using the Atlassian Goals GraphQL API (`goals_createUpdate`). It does not write to Confluence.
+This skill produces monthly Atlas goal updates for the XLA Pages project. For each goal it researches recent activity, drafts a short bulleted form and a long form with all links, then **posts the update directly onto the Atlas goal** using the Atlassian Goals GraphQL API (`goals_createUpdate`). It does not write to Confluence.
 
 ## Publishing target
 
@@ -72,21 +72,21 @@ Read and understand the full scope of each goal BEFORE searching. Do not narrow 
 
 ## Step 1: Resolve each goal and read its latest update
 
-For every goal key (XSOLLA-8722, 8723, 8731, 8733, 8861), call `goals_search` to resolve the human key to an Atlas ARI (`ari:cloud:townsquare:{siteId}:goal/{uuid}`) and pull the most recent update so you know the date to research from and what was already said:
+For every goal key (XSOLLA-8722, 8723, 8731, 8733, 8861), call `goals_byKey` to resolve the human key to an Atlas ARI and pull the most recent update. The `containerId` is always `ari:cloud:townsquare::site/9dfc393f-ac2d-4cef-8b1c-0657da26067f`.
 
 ```graphql
-query Resolve($q: String!) {
-  goals_search(first: 1, input: { search: $q }) @optIn(to: "Townsquare") {
-    edges { node {
-      id key name
-      state { value }
-      latestUpdate { creationDate status { value } newScore summary }
-    } }
+query Resolve($key: String!, $cid: ID!) {
+  goals_byKey(goalKey: $key, containerId: $cid) @optIn(to: "Townsquare") {
+    id key name
+    state { value }
+    latestUpdate { creationDate status { value } newScore summary }
   }
 }
 ```
 
-Record `id` (the ARI you'll post against) and `latestUpdate.creationDate` (research window cutoff — use this date instead of the hard-coded `2026-04-12` examples below). Skip a goal if its `latestUpdate.creationDate` is within the last 3 days (likely duplicate run).
+Variables: `{ "key": "XSOLLA-8731", "cid": "ari:cloud:townsquare::site/9dfc393f-ac2d-4cef-8b1c-0657da26067f" }`
+
+Record `id` (the ARI you'll post against) and `latestUpdate.creationDate` (research window cutoff). Skip a goal if its `latestUpdate.creationDate` is within the last 3 days (likely duplicate run).
 
 ## Step 2: Research Each Goal (MCP tools — Jira + Confluence)
 
@@ -159,10 +159,10 @@ For each goal, produce two versions.
 
 ## Step 4: Publish to Atlas (one update per goal)
 
-For each of the five goals, post a separate update via `goals_createUpdate`. The `summary` field must be an ADF (Atlassian Document Format) document — combine the short bullets and long prose into a single body. Use the helper script `scripts/post-atlas-update.sh` (preferred) or call the mutation directly:
+For each of the five goals, post a separate update via `goals_createUpdate`. Use the helper script `scripts/post-atlas-update.sh` (preferred) or call the mutation directly:
 
 ```graphql
-mutation Post($input: goals_CreateUpdateInput!) {
+mutation Post($input: TownsquareGoalsCreateUpdateInput!) {
   goals_createUpdate(input: $input) @optIn(to: "Townsquare") {
     success
     errors { message }
@@ -174,13 +174,13 @@ mutation Post($input: goals_CreateUpdateInput!) {
 Input fields:
 - `goalId` — the ARI from Step 1
 - `status` — `pending` | `on_track` | `at_risk` | `off_track` | `done` | `cancelled`. Choose based on signal: shipped scope → `on_track`; partner deadlines slipping or unresolved blockers → `at_risk`; missed milestones or no path forward → `off_track`. For XSOLLA-8733 (ELIAA) default to `at_risk` while team ownership is unresolved.
-- `summary` — ADF doc; see template below
+- `summary` — **JSON-stringified ADF** (a String scalar, not an object). Build the ADF doc, then pass `JSON.stringify(adf)` or `jq -c '.'` as the string value.
 - `score` — optional 0–100 progress estimate; only set when there is a measurable milestone signal
 - `targetDate` — only include if the goal's target is genuinely shifting; format `{ date: "YYYY-MM-DD", confidence: DAY }`
 
 ### ADF summary template
 
-Produce one ADF doc per goal containing a **Short** heading with a bullet list, then a **Long** heading with prose paragraphs. Hyperlinks are `text` nodes carrying a `link` mark — every Jira key, Confluence page, Slack permalink, and Drive URL surfaced in research must be linked, not bare text.
+Produce one ADF doc per goal containing a **Short** heading with a bullet list, then a **Long** heading with prose paragraphs. Hyperlinks are `text` nodes carrying a `link` mark. After building the ADF object, **stringify it to a JSON string** before placing it in the `summary` field.
 
 ```json
 {
@@ -201,6 +201,8 @@ Produce one ADF doc per goal containing a **Short** heading with a bullet list, 
 }
 ```
 
+When using the helper script, write the ADF doc to a `.json` file and pass the path — the script handles stringification automatically.
+
 ### After posting
 
 - Read back `data.goals_createUpdate.success` — abort the run if any goal returns `false` and surface the `errors[].message`.
@@ -211,8 +213,10 @@ Produce one ADF doc per goal containing a **Short** heading with a bullet list, 
 - The `@optIn(to: "Townsquare")` directive is required — without it, goals fields return empty.
 - Goal ARIs are **site-scoped**. Don't reuse them across orgs.
 - Scoped API tokens currently miss Townsquare scopes; use a classic API token if `goals_search` returns auth errors.
-- `goals_search` matches name, tags, and key — searching by the bare key (`XSOLLA-8722`) is the reliable lookup path.
-- Don't post if `latestUpdate.creationDate` is within the last 3 days — biweekly cron retries can double-post.
+- Use `goals_byKey(goalKey, containerId)` to resolve a goal — `goals_search` is unreliable and accepts different arguments.
+- `containerId` is always `ari:cloud:townsquare::site/9dfc393f-ac2d-4cef-8b1c-0657da26067f`.
+- `summary` is a **String scalar** — pass a JSON-stringified ADF, not a raw ADF object. Passing an object yields "Invalid ADF".
+- Don't post if `latestUpdate.creationDate` is within the last 3 days — monthly cron retries can double-post.
 - This skill runs without MCP servers. Every research call is plain `curl`. If a curl returns non-200 / `"ok":false`, log it and continue — never fail the whole run because one source is down.
 
 ## Quality Rules

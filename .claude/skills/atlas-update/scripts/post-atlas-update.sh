@@ -22,29 +22,29 @@ TARGET_DATE="${5:-}"
 : "${ATLASSIAN_SITE:?ATLASSIAN_SITE not set (e.g. xsolla.atlassian.net)}"
 
 ENDPOINT="https://${ATLASSIAN_SITE}/gateway/api/graphql"
-AUTH="$(printf '%s:%s' "$ATLASSIAN_EMAIL" "$ATLASSIAN_API_TOKEN" | base64 -w0)"
+CONTAINER_ID="ari:cloud:townsquare::site/9dfc393f-ac2d-4cef-8b1c-0657da26067f"
 
 api() {
   curl -sS --fail-with-body -X POST "$ENDPOINT" \
-    -H "Authorization: Basic $AUTH" \
+    -u "${ATLASSIAN_EMAIL}:${ATLASSIAN_API_TOKEN}" \
     -H "Content-Type: application/json" \
     -H "X-ExperimentalApi: opt-in" \
     --data "$1"
 }
 
 # 1. Resolve goal key -> ARI and read latest update
-SEARCH_QUERY='query($q:String!){goals_search(first:1,input:{search:$q})@optIn(to:"Townsquare"){edges{node{id key name latestUpdate{creationDate}}}}}'
-SEARCH_PAYLOAD="$(jq -nc --arg q "$GOAL_KEY" --arg query "$SEARCH_QUERY" '{query:$query,variables:{q:$q}}')"
-SEARCH_RESP="$(api "$SEARCH_PAYLOAD")"
+LOOKUP_QUERY='query($key:String!,$cid:ID!){goals_byKey(goalKey:$key,containerId:$cid)@optIn(to:"Townsquare"){id key name latestUpdate{creationDate}}}'
+LOOKUP_PAYLOAD="$(jq -nc --arg key "$GOAL_KEY" --arg cid "$CONTAINER_ID" --arg query "$LOOKUP_QUERY" '{query:$query,variables:{key:$key,cid:$cid}}')"
+LOOKUP_RESP="$(api "$LOOKUP_PAYLOAD")"
 
-GOAL_ARI="$(jq -r '.data.goals_search.edges[0].node.id // empty' <<<"$SEARCH_RESP")"
+GOAL_ARI="$(jq -r '.data.goals_byKey.id // empty' <<<"$LOOKUP_RESP")"
 if [[ -z "$GOAL_ARI" ]]; then
   echo "Could not resolve ARI for goal $GOAL_KEY" >&2
-  echo "$SEARCH_RESP" >&2
+  echo "$LOOKUP_RESP" >&2
   exit 1
 fi
 
-LAST_UPDATE="$(jq -r '.data.goals_search.edges[0].node.latestUpdate.creationDate // empty' <<<"$SEARCH_RESP")"
+LAST_UPDATE="$(jq -r '.data.goals_byKey.latestUpdate.creationDate // empty' <<<"$LOOKUP_RESP")"
 if [[ -n "$LAST_UPDATE" ]]; then
   if [[ "$(date -u -d "$LAST_UPDATE" +%s 2>/dev/null || echo 0)" -gt "$(date -u -d '3 days ago' +%s)" ]]; then
     echo "Skipping $GOAL_KEY: latest update at $LAST_UPDATE is within 3 days." >&2
@@ -54,12 +54,13 @@ fi
 
 echo "Resolved $GOAL_KEY -> $GOAL_ARI"
 
-# 2. Build mutation input
+# 2. Build mutation input — summary must be a JSON-stringified ADF string
+SUMMARY_STRING="$(jq -c '.' "$SUMMARY_FILE")"
 INPUT="$(jq -nc \
   --arg goalId "$GOAL_ARI" \
   --arg status "$STATUS" \
-  --slurpfile summary "$SUMMARY_FILE" \
-  '{goalId:$goalId, status:$status, summary:$summary[0]}')"
+  --arg summary "$SUMMARY_STRING" \
+  '{goalId:$goalId, status:$status, summary:$summary}')"
 
 if [[ -n "$SCORE" ]]; then
   INPUT="$(jq -c --argjson score "$SCORE" '. + {score:$score}' <<<"$INPUT")"
@@ -69,7 +70,7 @@ if [[ -n "$TARGET_DATE" ]]; then
 fi
 
 # 3. Post update
-MUTATION='mutation($input:goals_CreateUpdateInput!){goals_createUpdate(input:$input)@optIn(to:"Townsquare"){success errors{message} update{id url creationDate updateType newScore}}}'
+MUTATION='mutation($input:TownsquareGoalsCreateUpdateInput!){goals_createUpdate(input:$input)@optIn(to:"Townsquare"){success errors{message} update{id url creationDate updateType newScore}}}'
 PAYLOAD="$(jq -nc --arg query "$MUTATION" --argjson input "$INPUT" '{query:$query,variables:{input:$input}}')"
 RESP="$(api "$PAYLOAD")"
 
