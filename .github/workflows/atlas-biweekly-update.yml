@@ -18,6 +18,10 @@ permissions:
 jobs:
   post-update:
     runs-on: ubuntu-latest
+    env:
+      ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
+      ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
+      ATLASSIAN_SITE: ${{ secrets.ATLASSIAN_SITE }}
     steps:
       - name: Biweekly gate
         id: gate
@@ -40,12 +44,15 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Invoke the atlas-update skill. Research and publish the bi-weekly update
-            for all five XLA Pages Atlas goals (XSOLLA-8722, 8723, 8731, 8733, 8861)
-            to Confluence page 24359567986, following every step in
-            .claude/skills/atlas-update/SKILL.md exactly.
+            Invoke the atlas-update skill. Research and post a bi-weekly update
+            directly to each of the five XLA Pages Atlas goals (XSOLLA-8722,
+            8723, 8731, 8733, 8861) via the Atlassian Goals GraphQL API,
+            following every step in .claude/skills/atlas-update/SKILL.md.
 
-            Set the versionMessage to "Bi-weekly goals update $(date -u +%Y-%m-%d)".
+            For each goal: resolve its ARI, research recent activity in Jira,
+            Confluence, Slack, and Drive, draft the ADF summary, then call
+            .claude/skills/atlas-update/scripts/post-atlas-update.sh. Print
+            each returned update URL.
           allowed_tools: >-
             Read,Write,Edit,Bash,
             mcp__github__*,

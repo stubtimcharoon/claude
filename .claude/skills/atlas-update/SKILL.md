@@ -1,18 +1,28 @@
 ---
 name: atlas-update
-description: Researches and publishes bi-weekly Atlas goal updates to Confluence. For each goal, reads the correct goal scope, searches Slack, Confluence, Jira, and Google Drive for recent movements, then writes short bulleted and long-form updates with all relevant links. Use when updating Atlas goals, posting bi-weekly progress updates, or when asked to refresh the XLA Pages goals page.
+description: Researches and publishes bi-weekly Atlas goal updates directly to each Atlas goal via the Atlassian Goals GraphQL API. For each goal, reads the correct goal scope, searches Slack, Confluence, Jira, and Google Drive for recent movements, then writes short bulleted and long-form updates with all relevant links and posts them with goals_createUpdate. Use when updating Atlas goals or posting bi-weekly progress updates.
 ---
 
 # Atlas Goal Update Skill
 
-This skill produces bi-weekly Atlas goal updates for the XLA Pages project. Each update contains a short bulleted form and a long form with all links, then publishes to the central Confluence tracking page.
+This skill produces bi-weekly Atlas goal updates for the XLA Pages project. For each goal it researches recent activity, drafts a short bulleted form and a long form with all links, then **posts the update directly onto the Atlas goal** using the Atlassian Goals GraphQL API (`goals_createUpdate`). It does not write to Confluence.
 
-## Target Confluence Page
+## Publishing target
 
-- **Page:** Xsolla Pages - Atlas Goals
-- **URL:** https://xsolla.atlassian.net/wiki/spaces/XNTWRK/pages/24359567986/Xsolla+Pages+-+Atlas+Goals
-- **Page ID:** `24359567986`
-- **Cloud ID:** `xsolla.atlassian.net`
+Each goal's update is posted to its own Atlas updates feed at:
+`https://home.atlassian.com/o/baede55a-3fe5-4ac5-a2e3-6467bef08ffe/s/9dfc393f-ac2d-4cef-8b1c-0657da26067f/goal/<KEY>/updates`
+
+- **GraphQL endpoint:** `https://xsolla.atlassian.net/gateway/api/graphql`
+- **Auth:** Basic, `ATLASSIAN_EMAIL:ATLASSIAN_API_TOKEN` base64-encoded
+- **Required directive:** `@optIn(to: "Townsquare")` on every query/mutation that touches goals fields
+
+## Required environment
+
+| Variable | Example | Notes |
+|----------|---------|-------|
+| `ATLASSIAN_EMAIL` | `sam@xsolla.com` | Account email for Basic auth |
+| `ATLASSIAN_API_TOKEN` | `ATATT3x…` | Create at id.atlassian.com/manage-profile/security/api-tokens — must be a classic (unscoped) token, or include Townsquare scopes |
+| `ATLASSIAN_SITE` | `xsolla.atlassian.net` | Site subdomain, no scheme |
 
 ## Goal Definitions
 
@@ -53,9 +63,23 @@ Read and understand the full scope of each goal BEFORE searching. Do not narrow 
 **Key Jira tickets:** XLAPAGES-71, XLAPAGES-111, XLAPAGES-112, DEVALL-1512, DEVALL-639, DEVALL-1289
 **Key people:** Kirill Tokarev, Aleksandr Belomoev, Sam Tubtimcharoon
 
-## Step 1: Read the Current Page
+## Step 1: Resolve each goal and read its latest update
 
-Fetch the existing Confluence page (`pageId: 24359567986`) to note the last update date and previous content for each goal.
+For every goal key (XSOLLA-8722, 8723, 8731, 8733, 8861), call `goals_search` to resolve the human key to an Atlas ARI (`ari:cloud:townsquare:{siteId}:goal/{uuid}`) and pull the most recent update so you know the date to research from and what was already said:
+
+```graphql
+query Resolve($q: String!) {
+  goals_search(first: 1, input: { search: $q }) @optIn(to: "Townsquare") {
+    edges { node {
+      id key name
+      state { value }
+      latestUpdate { creationDate status { value } newScore summary }
+    } }
+  }
+}
+```
+
+Record `id` (the ARI you'll post against) and `latestUpdate.creationDate` (research window cutoff — use this date instead of the hard-coded `2026-04-12` examples below). Skip a goal if its `latestUpdate.creationDate` is within the last 3 days (likely duplicate run).
 
 ## Step 2: Research Each Goal
 
@@ -145,31 +169,62 @@ For each goal, produce two versions.
 - Call out owners by name where confirmed
 - If no new signal exists for a goal since last update, say so explicitly
 
-## Step 4: Publish to Confluence
+## Step 4: Publish to Atlas (one update per goal)
 
-Use `updateConfluencePage` (`pageId: 24359567986`). Page structure:
+For each of the five goals, post a separate update via `goals_createUpdate`. The `summary` field must be an ADF (Atlassian Document Format) document — combine the short bullets and long prose into a single body. Use the helper script `scripts/post-atlas-update.sh` (preferred) or call the mutation directly:
 
-```markdown
-**Last updated: YYYY-MM-DD**
-
----
-
-## XSOLLA-8722 — Platform Infrastructure
-[Atlas Goal](<link>)
-
-**Short**
-- bullet
-
-**Long**
-<prose>
-
----
-
-## XSOLLA-8723 — XLA Pages Build
-...
+```graphql
+mutation Post($input: goals_CreateUpdateInput!) {
+  goals_createUpdate(input: $input) @optIn(to: "Townsquare") {
+    success
+    errors { message }
+    update { id url creationDate updateType }
+  }
+}
 ```
 
-Set `versionMessage`: `Bi-weekly goals update YYYY-MM-DD`
+Input fields:
+- `goalId` — the ARI from Step 1
+- `status` — `pending` | `on_track` | `at_risk` | `off_track` | `done` | `cancelled`. Choose based on signal: shipped scope → `on_track`; partner deadlines slipping or unresolved blockers → `at_risk`; missed milestones or no path forward → `off_track`. For XSOLLA-8733 (ELIAA) default to `at_risk` while team ownership is unresolved.
+- `summary` — ADF doc; see template below
+- `score` — optional 0–100 progress estimate; only set when there is a measurable milestone signal
+- `targetDate` — only include if the goal's target is genuinely shifting; format `{ date: "YYYY-MM-DD", confidence: DAY }`
+
+### ADF summary template
+
+Produce one ADF doc per goal containing a **Short** heading with a bullet list, then a **Long** heading with prose paragraphs. Hyperlinks are `text` nodes carrying a `link` mark — every Jira key, Confluence page, Slack permalink, and Drive URL surfaced in research must be linked, not bare text.
+
+```json
+{
+  "version": 1,
+  "type": "doc",
+  "content": [
+    { "type": "heading", "attrs": { "level": 3 }, "content": [{ "type": "text", "text": "Short" }] },
+    { "type": "bulletList", "content": [
+      { "type": "listItem", "content": [{ "type": "paragraph", "content": [
+        { "type": "text", "text": "Shop Builder gap analysis closed by " },
+        { "type": "text", "text": "XLAPAGES-65", "marks": [{ "type": "link", "attrs": { "href": "https://xsolla.atlassian.net/browse/XLAPAGES-65" } }] },
+        { "type": "text", "text": " — owner Jeff Greenberg." }
+      ]}]}
+    ]},
+    { "type": "heading", "attrs": { "level": 3 }, "content": [{ "type": "text", "text": "Long" }] },
+    { "type": "paragraph", "content": [{ "type": "text", "text": "<2–4 paragraphs of prose with inline links>" }] }
+  ]
+}
+```
+
+### After posting
+
+- Read back `data.goals_createUpdate.success` — abort the run if any goal returns `false` and surface the `errors[].message`.
+- Print the returned `update.url` for each goal so the operator can spot-check.
+
+## Gotchas
+
+- The `@optIn(to: "Townsquare")` directive is required — without it, goals fields return empty.
+- Goal ARIs are **site-scoped**. Don't reuse them across orgs.
+- Scoped API tokens currently miss Townsquare scopes; use a classic API token if `goals_search` returns auth errors.
+- `goals_search` matches name, tags, and key — searching by the bare key (`XSOLLA-8722`) is the reliable lookup path.
+- Don't post if `latestUpdate.creationDate` is within the last 3 days — biweekly cron retries can double-post.
 
 ## Quality Rules
 
