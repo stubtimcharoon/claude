@@ -1,265 +1,109 @@
 ---
 name: atlas-update
-description: Researches and publishes monthly Atlas goal updates directly to each Atlas goal via the Atlassian Goals GraphQL API. For each goal, reads the correct goal scope, searches Slack, Confluence, Jira, and Google Drive for recent movements, then writes short bulleted and long-form updates with all relevant links and posts them with goals_createUpdate. Use when updating Atlas goals or posting monthly progress updates.
+description: Researches and publishes monthly Atlas goal updates for the five XLA Pages goals. Pulls signal from Slack (primary), Jira, Confluence, and Drive, drafts a bulleted ADF summary with inline links, and posts via goals_createUpdate. Use when posting monthly Atlas progress updates.
 ---
 
 # Atlas Goal Update Skill
 
-This skill produces monthly Atlas goal updates for the XLA Pages project. For each goal it researches recent activity, drafts a short bulleted form and a long form with all links, then **posts the update directly onto the Atlas goal** using the Atlassian Goals GraphQL API (`goals_createUpdate`). It does not write to Confluence.
+Posts monthly updates to five XLA Pages Atlas goals via `goals_createUpdate`. One bulleted ADF doc per goal with inline links. **Status defaults to the goal's current `state.value`** (passthrough) — only change it when signal clearly warrants.
 
-## Publishing target
+## Constants
 
-Each goal's update is posted to its own Atlas updates feed at:
-`https://home.atlassian.com/o/baede55a-3fe5-4ac5-a2e3-6467bef08ffe/s/9dfc393f-ac2d-4cef-8b1c-0657da26067f/goal/<KEY>/updates`
+- GraphQL endpoint: `https://xsolla.atlassian.net/gateway/api/graphql` (Basic auth: `ATLASSIAN_EMAIL:ATLASSIAN_API_TOKEN`).
+- Every op needs `@optIn(to: "Townsquare")`.
+- `containerId`: `ari:cloud:townsquare::site/9dfc393f-ac2d-4cef-8b1c-0657da26067f`.
+- Update page: `https://home.atlassian.com/o/baede55a-3fe5-4ac5-a2e3-6467bef08ffe/s/9dfc393f-ac2d-4cef-8b1c-0657da26067f/goal/<KEY>/updates`.
 
-- **GraphQL endpoint:** `https://xsolla.atlassian.net/gateway/api/graphql`
-- **Auth:** Basic, `ATLASSIAN_EMAIL:ATLASSIAN_API_TOKEN` base64-encoded
-- **Required directive:** `@optIn(to: "Townsquare")` on every query/mutation that touches goals fields
+## Required env
 
-## Required environment
+`ATLASSIAN_EMAIL`, `ATLASSIAN_API_TOKEN` (classic / unscoped), `ATLASSIAN_SITE`.
 
-| Variable | Example | Notes |
-|----------|---------|-------|
-| `ATLASSIAN_EMAIL` | `sam@xsolla.com` | Account email for Basic auth |
-| `ATLASSIAN_API_TOKEN` | `ATATT3x…` | Create at id.atlassian.com/manage-profile/security/api-tokens — must be a classic (unscoped) token, or include Townsquare scopes |
-| `ATLASSIAN_SITE` | `xsolla.atlassian.net` | Site subdomain, no scheme |
+Optional (each source skipped silently if its var is unset):
+- `SLACK_BOT_TOKEN` — Slack `search:read`. **Primary research source.**
+- `GOOGLE_OAUTH_TOKEN` — `drive.readonly` + `calendar.events` scopes.
 
-### Optional research env (skill skips a source if its var is unset)
+## Goals
 
-| Variable | Where to get it |
-|----------|-----------------|
-| `SLACK_BOT_TOKEN` | Slack app → OAuth & Permissions; scopes `search:read`, `channels:history`. Starts with `xoxb-…`. |
-| `GOOGLE_OAUTH_TOKEN` | A short-lived OAuth access token with `drive.readonly` scope (refresh via service account or `gcloud auth print-access-token`). |
+| Key | Name | Focus | Key tickets | Key people |
+|---|---|---|---|---|
+| XSOLLA-8722 | Platform Infrastructure | Shop Builder, Xsolla ID, Backpack, UGC-S service layer. Platform arch by Q2 2026. | XLAPAGES-65, 68, 69, 26, 118; DEVALL-1512, 714, 824 | Jeff Greenberg, Denis Desiatov, Victoria Zabolotnykh, Stas Kapinus, Artem Liubutov |
+| XSOLLA-8723 | XLA Pages Build | Page frames (Payment/Game/Influencer/Telecom/Retail), 8 MVP plugins, PRD, Figma, Jira plan. Q3 2026 launch. | XLAPAGES-26, 64–67, 27, 51, 118 | Aleksandr Belomoev, Kirill Tokarev, Jeremy MacKay, Sam Tubtimcharoon |
+| XSOLLA-8731 | SEO & Organic Traffic | SEO foundation for 10k+ auto-generated pages: meta, sitemap, canonicalization, hreflang, AI-search impact. | XLAPAGES-29, 83, 90–92 | Tyler Erickson, Kirill Tokarev, Denis Desiatov |
+| XSOLLA-8733 | ELIAA | Affiliate attribution baked into Pages. Blocked on team ownership; acquihire preferred path. Default `at_risk`. | XLAPAGES-14, 70, 113 | Kirill Tokarev, Jeremy MacKay, Maxim Silaev |
+| XSOLLA-8861 | Payments MVP / Paze | First live XLA Payment Page with real partner by 2026-06-15. Primary: Paze (hard deadline). Secondary: ShopeePay. | XLAPAGES-71, 111, 112; DEVALL-1512, 639, 1289 | Kirill Tokarev, Aleksandr Belomoev, Sam Tubtimcharoon |
 
-## Goal Definitions
+## Step 1: Resolve each goal
 
-Read and understand the full scope of each goal BEFORE searching. Do not narrow your research to a single team or ticket — each goal spans multiple systems.
+Call `goals_byKey(goalKey, containerId)` and record `id` (ARI), `state.value` (= passthrough status), `latestUpdate.creationDate`. **Skip goals whose last update is <3 days old** — the helper script handles this automatically.
 
-### XSOLLA-8722 — Platform Infrastructure
+## Step 2: Research (Slack primary, then supplements)
 
-**Scope:** Resolve all main infrastructure blockers required to build and ship XLA Pages. This covers Shop Builder (page assembly, plugin system, dynamic rendering), Xsolla ID (auth modal, SSO, PayStation token exchange), Backpack (overlay API, session inheritance), and the Universal Games Catalogue (UGC-S service layer, game metadata API). Goal: finalize platform architecture by Q2 2026.
-**Atlas link:** https://home.atlassian.com/o/baede55a-3fe5-4ac5-a2e3-6467bef08ffe/s/9dfc393f-ac2d-4cef-8b1c-0657da26067f/goal/XSOLLA-8722/updates
-**Key Jira tickets:** XLAPAGES-65, XLAPAGES-68, XLAPAGES-69, XLAPAGES-26, XLAPAGES-118, DEVALL-1512, DEVALL-714, DEVALL-824
-**Key people:** Jeff Greenberg (arch gap analysis), Denis Desiatov (UGC), Victoria Zabolotnykh (Xsolla ID), Stas Kapinus (Backpack), Artem Liubutov (Shop Builder)
+Window: since each goal's `latestUpdate.creationDate` (fall back to 30 days). Caps per source: **Slack 15, Jira 20, Confluence 10, Drive 10.**
 
-### XSOLLA-8723 — XLA Pages Build
-
-**Scope:** Design, build, and deliver the full XLA Pages product — all page frames (Payment, Game, Influencer, Telecom, Retail) and all 8 MVP plugins. Includes PRD delivery, Figma flows, plugin board process, Jira plan, and coordinating the full build across Shop Builder, UGC, Xsolla ID, and Backpack. Target: Q3 2026 launch.
-**Atlas link:** https://home.atlassian.com/o/baede55a-3fe5-4ac5-a2e3-6467bef08ffe/s/9dfc393f-ac2d-4cef-8b1c-0657da26067f/goal/XSOLLA-8723/updates
-**Key Jira tickets:** XLAPAGES-26, XLAPAGES-64, XLAPAGES-65, XLAPAGES-66, XLAPAGES-67, XLAPAGES-27, XLAPAGES-51, XLAPAGES-118
-**Key people:** Aleksandr Belomoev (product/PRD), Kirill Tokarev (strategy), Jeremy MacKay (Shop Builder alignment), Sam Tubtimcharoon (process/plan)
-
-### XSOLLA-8731 — SEO & Organic Traffic
-
-**Scope:** Build the SEO foundation for 10,000+ auto-generated XLA pages. Covers meta tag and structured data strategy, programmatic sitemap generation, canonicalization rules, crawl/indexing monitoring, URL structure, and multi-language support. Also tracks the strategic impact of AI on organic search. Owner: Tyler Erickson.
-**Atlas link:** https://home.atlassian.com/o/baede55a-3fe5-4ac5-a2e3-6467bef08ffe/s/9dfc393f-ac2d-4cef-8b1c-0657da26067f/goal/XSOLLA-8731/updates
-**Key Jira tickets:** XLAPAGES-29, XLAPAGES-83, XLAPAGES-90, XLAPAGES-91, XLAPAGES-92
-**Key people:** Tyler Erickson, Kirill Tokarev, Denis Desiatov (catalogue/SEO field overlap)
-
-### XSOLLA-8733 — ELIAA (Every Link Is An Affiliate)
-
-**Scope:** Make every link on XLA Pages carry attribution — building the affiliate infrastructure directly into the page layer. Per Shurik's directive, all affiliate offerings must be built around and for Xsolla Pages, aligned with creator, telecom, and non-gaming platform offerings. Currently blocked on team ownership and technical integration design. Preferred path: acquihire or acquisition of an experienced team.
-**Atlas link:** https://home.atlassian.com/o/baede55a-3fe5-4ac5-a2e3-6467bef08ffe/s/9dfc393f-ac2d-4cef-8b1c-0657da26067f/goal/XSOLLA-8733/updates
-**Key Jira tickets:** XLAPAGES-14, XLAPAGES-70, XLAPAGES-113
-**Key people:** Kirill Tokarev, Jeremy MacKay (escalating to Moin), Maxim Silaev (potential contact)
-
-### XSOLLA-8861 — Payments MVP / First Partner Go-Live
-
-**Scope:** Ship the first live XLA Payment Page with a real partner by June 15, 2026. Primary partner: Paze (hard deadline tied to their merchant marketing campaign). Secondary: ShopeePay. Covers partner onboarding, page config, content review cycle, Shop Builder integration, DevAll ticket process, and go-live sign-off. Vertical priority: payments → telecoms → retail.
-**Atlas link:** https://home.atlassian.com/o/baede55a-3fe5-4ac5-a2e3-6467bef08ffe/s/9dfc393f-ac2d-4cef-8b1c-0657da26067f/goal/XSOLLA-8861/updates
-**Key Jira tickets:** XLAPAGES-71, XLAPAGES-111, XLAPAGES-112, DEVALL-1512, DEVALL-639, DEVALL-1289
-**Key people:** Kirill Tokarev, Aleksandr Belomoev, Sam Tubtimcharoon
-
-## Step 1: Resolve each goal and read its latest update
-
-For every goal key (XSOLLA-8722, 8723, 8731, 8733, 8861), call `goals_byKey` to resolve the human key to an Atlas ARI and pull the most recent update. The `containerId` is always `ari:cloud:townsquare::site/9dfc393f-ac2d-4cef-8b1c-0657da26067f`.
-
-```graphql
-query Resolve($key: String!, $cid: ID!) {
-  goals_byKey(goalKey: $key, containerId: $cid) @optIn(to: "Townsquare") {
-    id key name
-    state { value }
-    latestUpdate { creationDate status { value } newScore summary }
-  }
-}
-```
-
-Variables: `{ "key": "XSOLLA-8731", "cid": "ari:cloud:townsquare::site/9dfc393f-ac2d-4cef-8b1c-0657da26067f" }`
-
-Record `id` (the ARI you'll post against) and `latestUpdate.creationDate` (research window cutoff). Skip a goal if its `latestUpdate.creationDate` is within the last 3 days (likely duplicate run).
-
-## Step 2: Research Each Goal (MCP tools — Jira + Confluence)
-
-Use the Atlassian MCP tools directly. No curl needed for research.
-
-### 2a. Jira
-
-For each goal's key tickets, call `getJiraIssue` with `cloudId: xsolla.atlassian.net` and `fields: ["summary","status","assignee","updated","description","comment"]`.
-
-Then run JQL searches:
-
-```
-project = XLAPAGES AND updated >= "<SINCE>" ORDER BY updated DESC
-project = DEVALL AND summary ~ "XLA" AND updated >= "<SINCE>" ORDER BY updated DESC
-```
-
-Use `searchJiraIssuesUsingJql` with `cloudId: xsolla.atlassian.net`.
-
-### 2b. Confluence
-
-Use `searchConfluenceUsingCql` with `cloudId: xsolla.atlassian.net`:
-
-```
-space = "XNTWRK" AND lastmodified >= "<SINCE>" ORDER BY lastmodified DESC
-```
-
-Also use the Rovo `search` tool for keyword lookups: "Shop Builder", "Paze", "ELIAA", "SEO", "Tyler Erickson", "gap analysis", "Xsolla ID", "UGC".
-
-### 2c. Slack (skip if SLACK_BOT_TOKEN unset)
+### Slack — primary
+Channel-scoped first: `in:<#C09JA0JH17V>` (`#xla-pages-workgroup`, private, the canonical workgroup). Then keyword search across public channels (e.g. "Paze", "ELIAA", "SEO PRD", "gap analysis") only if channel-scoped is thin.
 
 ```bash
-[ -z "$SLACK_BOT_TOKEN" ] && echo "Slack: skipping" || \
-curl -sS -G -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
-  --data-urlencode 'query=<search terms> after:<SINCE>' \
-  --data-urlencode 'count=20' \
-  "https://slack.com/api/search.messages"
+[ -z "$SLACK_BOT_TOKEN" ] || curl -sS -G -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+  --data-urlencode "query=in:<#C09JA0JH17V> after:<SINCE>" \
+  --data-urlencode 'count=15' https://slack.com/api/search.messages
 ```
 
-Per-goal Slack queries are listed in the Slack section below.
+### Jira — supplement
+Hit each goal's key tickets via `getJiraIssue`, plus one JQL: `project = XLAPAGES AND updated >= "<SINCE>" ORDER BY updated DESC` (cap 20).
 
-### 2d. Google Drive (skip if GOOGLE_OAUTH_TOKEN unset)
+### Confluence — supplement
+One CQL: `space = "XNTWRK" AND lastmodified >= "<SINCE>" ORDER BY lastmodified DESC` (cap 10).
+
+### Drive — optional supplement
+Skip unless `GOOGLE_OAUTH_TOKEN` set. Query: `fullText contains 'XLA Pages' and modifiedTime > '<SINCE>T00:00:00Z'`.
+
+## Step 3: Write the update (bullets only)
+
+For each goal, an ADF doc with **one `bulletList`** of 4–6 list items. No headings, no long-form prose.
+
+Rules:
+- Each bullet = one specific fact: decision, ticket, person, blocker, shipped scope. No filler.
+- Every Jira key, Confluence page, and Slack permalink must be a hyperlinked `text` node (text + `link` mark) — never bare URL.
+- Order most important first.
+- Don't repeat content from the prior update unless still current.
+
+Shape: `{ "version": 1, "type": "doc", "content": [{ "type": "bulletList", "content": [<listItem>...] }] }`. A `listItem` wraps a `paragraph` whose content is `text` nodes (some carrying a `link` mark).
+
+## Step 4: Publish
+
+Write the ADF to `/tmp/<KEY>.adf.json`, then call the helper:
 
 ```bash
-[ -z "$GOOGLE_OAUTH_TOKEN" ] && echo "Drive: skipping" || \
-curl -sS -G -H "Authorization: Bearer $GOOGLE_OAUTH_TOKEN" \
-  --data-urlencode "q=fullText contains 'XLA Pages' and modifiedTime > '<SINCE>T00:00:00Z'" \
-  --data-urlencode 'fields=files(id,name,webViewLink,modifiedTime)' \
-  "https://www.googleapis.com/drive/v3/files"
+scripts/post-atlas-update.sh "$GOAL_KEY" "$STATUS_PASSTHROUGH" "/tmp/$GOAL_KEY.adf.json"
 ```
 
-## Step 3: Write the Updates
+The script resolves the ARI, applies the 3-day duplicate-guard, stringifies the ADF, posts the mutation, and prints `update.url`. Collect every URL for Step 5. If any goal fails, surface `errors[].message` but continue with the rest.
 
-For each goal, produce two versions.
+## Step 5: Schedule review reminder (Google Calendar)
 
-### Short Form
+After all goals post, create **one** event on `s.tubtimcharoon@xsolla.com`'s primary calendar:
 
-- 5 to 7 tight bullets
-- Each bullet = one specific action taken, decision made, ticket created, person confirmed, or blocker identified
-- Include inline Jira/Confluence/Slack links
-- Ordered: most important or most recent first
-- Never write generic filler — every bullet must be verifiable from research
+- Summary: `Review Atlas monthly updates`
+- Start: `now + 2h`, end: start + 30 min, time zone: `Asia/Bangkok`
+- Reminder: one `popup` at 0 minutes
+- Description: one line per posted goal — `<a href="$URL">$KEY</a> · $STATUS` — joined with `<br>`
 
-### Long Form
-
-- 2 to 4 paragraphs of connected prose
-- Cover what happened, what decisions were made, what is blocked, what is next
-- Link every Jira ticket, Confluence page, Slack thread, and Drive doc that is relevant
-- Call out owners by name where confirmed
-- If no new signal exists for a goal since last update, say so explicitly
-
-## Step 4: Publish to Atlas (one update per goal)
-
-For each of the five goals, post a separate update via `goals_createUpdate`. Use the helper script `scripts/post-atlas-update.sh` (preferred) or call the mutation directly:
-
-```graphql
-mutation Post($input: TownsquareGoalsCreateUpdateInput!) {
-  goals_createUpdate(input: $input) @optIn(to: "Townsquare") {
-    success
-    errors { message }
-    update { id url creationDate updateType }
-  }
-}
-```
-
-Input fields:
-- `goalId` — the ARI from Step 1
-- `status` — `pending` | `on_track` | `at_risk` | `off_track` | `done` | `cancelled`. Choose based on signal: shipped scope → `on_track`; partner deadlines slipping or unresolved blockers → `at_risk`; missed milestones or no path forward → `off_track`. For XSOLLA-8733 (ELIAA) default to `at_risk` while team ownership is unresolved.
-- `summary` — **JSON-stringified ADF** (a String scalar, not an object). Build the ADF doc, then pass `JSON.stringify(adf)` or `jq -c '.'` as the string value.
-- `score` — optional 0–100 progress estimate; only set when there is a measurable milestone signal
-- `targetDate` — only include if the goal's target is genuinely shifting; format `{ date: "YYYY-MM-DD", confidence: DAY }`
-
-### ADF summary template
-
-Produce one ADF doc per goal containing a **Short** heading with a bullet list, then a **Long** heading with prose paragraphs. Hyperlinks are `text` nodes carrying a `link` mark. After building the ADF object, **stringify it to a JSON string** before placing it in the `summary` field.
-
-```json
-{
-  "version": 1,
-  "type": "doc",
-  "content": [
-    { "type": "heading", "attrs": { "level": 3 }, "content": [{ "type": "text", "text": "Short" }] },
-    { "type": "bulletList", "content": [
-      { "type": "listItem", "content": [{ "type": "paragraph", "content": [
-        { "type": "text", "text": "Shop Builder gap analysis closed by " },
-        { "type": "text", "text": "XLAPAGES-65", "marks": [{ "type": "link", "attrs": { "href": "https://xsolla.atlassian.net/browse/XLAPAGES-65" } }] },
-        { "type": "text", "text": " — owner Jeff Greenberg." }
-      ]}]}
-    ]},
-    { "type": "heading", "attrs": { "level": 3 }, "content": [{ "type": "text", "text": "Long" }] },
-    { "type": "paragraph", "content": [{ "type": "text", "text": "<2–4 paragraphs of prose with inline links>" }] }
-  ]
-}
-```
-
-When using the helper script, write the ADF doc to a `.json` file and pass the path — the script handles stringification automatically.
-
-### After posting
-
-- Read back `data.goals_createUpdate.success` — abort the run if any goal returns `false` and surface the `errors[].message`.
-- Print the returned `update.url` for each goal so the operator can spot-check.
-- Collect every successful `update.url` for use in Step 5.
-
-## Step 5: Schedule review reminder via Google Calendar
-
-After all goals have posted successfully, create one calendar event on `s.tubtimcharoon@xsolla.com`'s primary calendar **2 hours after post completion**. The event is a reminder to spot-check the posted updates while they are still fresh.
-
-- **Summary:** `Review Atlas bi-weekly updates`
-- **Start:** `now + 2h` (use the post-completion timestamp, not the script start)
-- **End:** start + 30 min
-- **Time zone:** `Asia/Bangkok` (operator's tz). Pass `timeZone: "Asia/Bangkok"` and naive ISO times — the API resolves them.
-- **Reminders:** one `popup` reminder at 0 minutes (fires when the event starts).
-- **Description:** one line per posted goal, with the goal key, status used, and the returned `update.url`. Format each as a clickable HTML anchor (`<a href="…">…</a>`) — Calendar renders HTML in the description.
-
-### MCP path (interactive Claude Code session)
-
-Call `mcp__claude_ai_Google_Calendar__create_event` with the fields above. The `description` accepts HTML.
-
-### Workflow path (no MCP — curl)
+Workflow path (curl), skipped silently if no token / wrong scope:
 
 ```bash
-[ -z "$GOOGLE_OAUTH_TOKEN" ] && echo "Calendar: skipping (no token)" || \
-curl -sS -X POST \
-  -H "Authorization: Bearer $GOOGLE_OAUTH_TOKEN" \
-  -H "Content-Type: application/json" \
-  --data @- \
-  "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=none" <<JSON
-{
-  "summary": "Review Atlas bi-weekly updates",
-  "description": "<a href=\"$URL_8722\">XSOLLA-8722</a> ($STATUS_8722)<br><a href=\"$URL_8723\">XSOLLA-8723</a> ($STATUS_8723)<br>…",
-  "start": { "dateTime": "$START_ISO", "timeZone": "Asia/Bangkok" },
-  "end":   { "dateTime": "$END_ISO",   "timeZone": "Asia/Bangkok" },
-  "reminders": { "useDefault": false, "overrides": [{ "method": "popup", "minutes": 0 }] }
-}
-JSON
+[ -z "$GOOGLE_OAUTH_TOKEN" ] || curl -sS -X POST \
+  -H "Authorization: Bearer $GOOGLE_OAUTH_TOKEN" -H "Content-Type: application/json" \
+  --data "$EVENT_JSON" \
+  "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=none"
 ```
 
-The `GOOGLE_OAUTH_TOKEN` used for the Drive research step in 2d must have the `https://www.googleapis.com/auth/calendar.events` scope as well. If only Drive scope is granted, the calendar step skips silently — never block the whole run on calendar failure.
+Interactive (Claude Code) path: use the `mcp__claude_ai_Google_Calendar__create_event` tool with the same fields.
 
 ## Gotchas
 
-- The `@optIn(to: "Townsquare")` directive is required — without it, goals fields return empty.
-- Goal ARIs are **site-scoped**. Don't reuse them across orgs.
-- Scoped API tokens currently miss Townsquare scopes; use a classic API token if `goals_search` returns auth errors.
-- Use `goals_byKey(goalKey, containerId)` to resolve a goal — `goals_search` is unreliable and accepts different arguments.
-- `containerId` is always `ari:cloud:townsquare::site/9dfc393f-ac2d-4cef-8b1c-0657da26067f`.
-- `summary` is a **String scalar** — pass a JSON-stringified ADF, not a raw ADF object. Passing an object yields "Invalid ADF".
-- Don't post if `latestUpdate.creationDate` is within the last 3 days — monthly cron retries can double-post.
-- This skill runs without MCP servers. Every research call is plain `curl`. If a curl returns non-200 / `"ok":false`, log it and continue — never fail the whole run because one source is down.
-
-## Quality Rules
-
-- Understand the full goal scope before writing — do not reduce a cross-system goal to one team
-- Every bullet must reference a specific fact, person, ticket, or decision
-- Long form must have at least 3 inline links per goal where available
-- If a Slack message, Confluence page, or Drive doc contains relevant signal, link to it directly
-- Do not repeat content from the previous update unless it is still the most current status
+- `@optIn(to: "Townsquare")` is mandatory on every op.
+- Use a **classic** API token — scoped tokens lack Townsquare access.
+- `summary` is a **String scalar**: pass `JSON.stringify(adf)`, not the ADF object. The helper script handles this.
+- Status defaults to passthrough (the goal's current `state.value`). Change only when signal explicitly warrants.
+- If a research source errors, log and continue — never fail the whole run on one source.

@@ -35,4 +35,5 @@ jobs:
         run: |
           claude --print \
             --allowedTools "Bash" \
-            "Invoke the atlas-update skill: read .claude/skills/atlas-update/SKILL.md and follow every step exactly. Research and post a monthly update directly to each of the five XLA Pages Atlas goals (XSOLLA-8722, 8723, 8731, 8733, 8861) via the Atlassian Goals GraphQL API. For each goal: resolve its ARI via goals_byKey with containerId ari:cloud:townsquare::site/9dfc393f-ac2d-4cef-8b1c-0657da26067f, research recent Jira and Confluence activity using curl with the ATLASSIAN_* env vars, draft the ADF summary (JSON-stringified), then call .claude/skills/atlas-update/scripts/post-atlas-update.sh. Print each returned update URL."
+            -- \
+            "Run the atlas-update skill (.claude/skills/atlas-update/SKILL.md) end-to-end for all five goals."
