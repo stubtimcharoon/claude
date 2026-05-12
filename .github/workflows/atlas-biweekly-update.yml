@@ -1,0 +1,59 @@
+name: Atlas Goal Biweekly Update
+
+on:
+  schedule:
+    # Every other Monday at 09:00 UTC. GitHub cron has no native "every 2 weeks",
+    # so the job runs weekly and the step below skips odd ISO weeks.
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Run even on the off week
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  post-update:
+    runs-on: ubuntu-latest
+    env:
+      ATLAS_GOAL_KEY: XSOLLA-8731
+      ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
+      ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
+      ATLASSIAN_SITE: ${{ secrets.ATLASSIAN_SITE }}
+    steps:
+      - name: Biweekly gate
+        id: gate
+        run: |
+          week=$(date -u +%V)
+          if [[ "${{ inputs.force }}" == "true" ]] || (( week % 2 == 0 )); then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping: ISO week $week is an off week."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude with the atlas-goal-update skill
+        if: steps.gate.outputs.run == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Use the atlas-goal-update skill to post a biweekly update to Atlas goal $ATLAS_GOAL_KEY.
+
+            1. Resolve the goal ARI via goals_search.
+            2. Look at git log --since="14 days ago" and any merged PRs in that window to summarize what shipped.
+            3. Draft an ADF summary (headline + Shipped + Next), pick a status, and call
+               .claude/skills/atlas-goal-update/scripts/post-atlas-update.sh.
+            4. Print the returned update URL.
+
+            Do not post if latestUpdate.creationDate is within the last 3 days.
+          allowed_tools: "Bash,Read,Write,Edit"
