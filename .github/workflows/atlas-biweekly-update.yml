@@ -18,11 +18,6 @@ permissions:
 jobs:
   post-update:
     runs-on: ubuntu-latest
-    env:
-      ATLAS_GOAL_KEY: XSOLLA-8731
-      ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
-      ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
-      ATLASSIAN_SITE: ${{ secrets.ATLASSIAN_SITE }}
     steps:
       - name: Biweekly gate
         id: gate
@@ -38,22 +33,23 @@ jobs:
       - name: Checkout
         if: steps.gate.outputs.run == 'true'
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Run Claude with the atlas-goal-update skill
+      - name: Run Claude with the atlas-update skill
         if: steps.gate.outputs.run == 'true'
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Use the atlas-goal-update skill to post a biweekly update to Atlas goal $ATLAS_GOAL_KEY.
+            Invoke the atlas-update skill. Research and publish the bi-weekly update
+            for all five XLA Pages Atlas goals (XSOLLA-8722, 8723, 8731, 8733, 8861)
+            to Confluence page 24359567986, following every step in
+            .claude/skills/atlas-update/SKILL.md exactly.
 
-            1. Resolve the goal ARI via goals_search.
-            2. Look at git log --since="14 days ago" and any merged PRs in that window to summarize what shipped.
-            3. Draft an ADF summary (headline + Shipped + Next), pick a status, and call
-               .claude/skills/atlas-goal-update/scripts/post-atlas-update.sh.
-            4. Print the returned update URL.
-
-            Do not post if latestUpdate.creationDate is within the last 3 days.
-          allowed_tools: "Bash,Read,Write,Edit"
+            Set the versionMessage to "Bi-weekly goals update $(date -u +%Y-%m-%d)".
+          allowed_tools: >-
+            Read,Write,Edit,Bash,
+            mcp__github__*,
+            mcp__b7815e3c-85f8-41d6-b17d-29755b5a4937__*,
+            mcp__6f8662d1-3da1-4f76-9fb9-cc33e57f1f28__*,
+            mcp__68578cbe-fdc5-4481-a0b3-e209974c87dc__*,
+            mcp__c77c72a4-9a24-467b-9a78-3a688eea49ad__*
