@@ -22,6 +22,8 @@ jobs:
       ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
       ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
       ATLASSIAN_SITE: ${{ secrets.ATLASSIAN_SITE }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      GOOGLE_OAUTH_TOKEN: ${{ secrets.GOOGLE_OAUTH_TOKEN }}
     steps:
       - name: Biweekly gate
         id: gate
@@ -53,10 +55,4 @@ jobs:
             Confluence, Slack, and Drive, draft the ADF summary, then call
             .claude/skills/atlas-update/scripts/post-atlas-update.sh. Print
             each returned update URL.
-          allowed_tools: >-
-            Read,Write,Edit,Bash,
-            mcp__github__*,
-            mcp__b7815e3c-85f8-41d6-b17d-29755b5a4937__*,
-            mcp__6f8662d1-3da1-4f76-9fb9-cc33e57f1f28__*,
-            mcp__68578cbe-fdc5-4481-a0b3-e209974c87dc__*,
-            mcp__c77c72a4-9a24-467b-9a78-3a688eea49ad__*
+          claude_args: '--allowedTools "Bash Read Write Edit"'
