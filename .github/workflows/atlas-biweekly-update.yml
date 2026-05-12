@@ -2,8 +2,7 @@ name: Atlas Goal Biweekly Update
 
 on:
   schedule:
-    # Every other Monday at 09:00 UTC. GitHub cron has no native "every 2 weeks",
-    # so the job runs weekly and the step below skips odd ISO weeks.
+    # Every other Monday at 09:00 UTC
     - cron: '0 9 * * 1'
   workflow_dispatch:
     inputs:
@@ -14,12 +13,12 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   post-update:
     runs-on: ubuntu-latest
     env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
       ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
       ATLASSIAN_SITE: ${{ secrets.ATLASSIAN_SITE }}
@@ -41,20 +40,13 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         uses: actions/checkout@v4
 
-      - name: Run Claude with the atlas-update skill
+      - name: Install Claude Code CLI
         if: steps.gate.outputs.run == 'true'
-        uses: anthropics/claude-code-action@v1
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          prompt: |
-            Invoke the atlas-update skill. Research and post a bi-weekly update
-            directly to each of the five XLA Pages Atlas goals (XSOLLA-8722,
-            8723, 8731, 8733, 8861) via the Atlassian Goals GraphQL API,
-            following every step in .claude/skills/atlas-update/SKILL.md.
+        run: npm install -g @anthropic-ai/claude-code
 
-            For each goal: resolve its ARI, research recent activity in Jira,
-            Confluence, Slack, and Drive, draft the ADF summary, then call
-            .claude/skills/atlas-update/scripts/post-atlas-update.sh. Print
-            each returned update URL.
-          claude_args: '--allowedTools "Bash Read Write Edit"'
+      - name: Run atlas-update skill
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          claude --print \
+            --allowedTools "Bash" \
+            "Invoke the atlas-update skill: read .claude/skills/atlas-update/SKILL.md and follow every step exactly. Research and post a bi-weekly update directly to each of the five XLA Pages Atlas goals (XSOLLA-8722, 8723, 8731, 8733, 8861) via the Atlassian Goals GraphQL API. For each goal: resolve its ARI via goals_search, research recent Jira and Confluence activity using curl with the ATLASSIAN_* env vars, draft the ADF summary, then call .claude/skills/atlas-update/scripts/post-atlas-update.sh. Print each returned update URL."
