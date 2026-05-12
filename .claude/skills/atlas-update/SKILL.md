@@ -88,86 +88,54 @@ query Resolve($q: String!) {
 
 Record `id` (the ARI you'll post against) and `latestUpdate.creationDate` (research window cutoff — use this date instead of the hard-coded `2026-04-12` examples below). Skip a goal if its `latestUpdate.creationDate` is within the last 3 days (likely duplicate run).
 
-## Step 2: Research Each Goal (REST APIs via curl)
+## Step 2: Research Each Goal (MCP tools — Jira + Confluence)
 
-This skill runs in plain shell — there are no MCP tools available. All research is done with `curl` against public REST endpoints, using the secrets in env. Sources without credentials are skipped (and called out in the update as a gap).
+Use the Atlassian MCP tools directly. No curl needed for research.
 
-Replace `<SINCE>` below with `latestUpdate.creationDate` from Step 1 (or `now - 14d` if the goal has no prior update).
+### 2a. Jira
 
-### Shared auth helper
+For each goal's key tickets, call `getJiraIssue` with `cloudId: xsolla.atlassian.net` and `fields: ["summary","status","assignee","updated","description","comment"]`.
 
-```bash
-ATL_AUTH="Basic $(printf '%s:%s' "$ATLASSIAN_EMAIL" "$ATLASSIAN_API_TOKEN" | base64 -w0)"
+Then run JQL searches:
+
+```
+project = XLAPAGES AND updated >= "<SINCE>" ORDER BY updated DESC
+project = DEVALL AND summary ~ "XLA" AND updated >= "<SINCE>" ORDER BY updated DESC
 ```
 
-### 2a. Jira — REST v3
+Use `searchJiraIssuesUsingJql` with `cloudId: xsolla.atlassian.net`.
 
-For each goal's listed key ticket:
+### 2b. Confluence
 
-```bash
-curl -sS -H "Authorization: $ATL_AUTH" -H "Accept: application/json" \
-  "https://$ATLASSIAN_SITE/rest/api/3/issue/<KEY>?fields=summary,status,assignee,updated,description,comment"
+Use `searchConfluenceUsingCql` with `cloudId: xsolla.atlassian.net`:
+
+```
+space = "XNTWRK" AND lastmodified >= "<SINCE>" ORDER BY lastmodified DESC
 ```
 
-JQL search for recent activity:
+Also use the Rovo `search` tool for keyword lookups: "Shop Builder", "Paze", "ELIAA", "SEO", "Tyler Erickson", "gap analysis", "Xsolla ID", "UGC".
+
+### 2c. Slack (skip if SLACK_BOT_TOKEN unset)
 
 ```bash
-JQL='project = XLAPAGES AND updated >= "<SINCE>" ORDER BY updated DESC'
-curl -sS -G -H "Authorization: $ATL_AUTH" -H "Accept: application/json" \
-  --data-urlencode "jql=$JQL" \
-  --data-urlencode "fields=summary,status,assignee,updated" \
-  "https://$ATLASSIAN_SITE/rest/api/3/search/jql"
-```
-
-Also run with `JQL='project = DEVALL AND summary ~ "XLA" AND updated >= "<SINCE>" ORDER BY updated DESC'` for cross-cutting work.
-
-### 2b. Confluence — REST v2 search
-
-```bash
-curl -sS -G -H "Authorization: $ATL_AUTH" -H "Accept: application/json" \
-  --data-urlencode 'cql=space = "XNTWRK" AND lastmodified >= "<SINCE>" ORDER BY lastmodified DESC' \
-  --data-urlencode 'limit=25' \
-  "https://$ATLASSIAN_SITE/wiki/rest/api/search"
-```
-
-Repeat with keyword-filtered CQL, e.g. `text ~ "Shop Builder"`, `text ~ "Paze"`, `text ~ "ELIAA"`, `text ~ "SEO"`, etc.
-
-### 2c. Slack — Web API (skip if `$SLACK_BOT_TOKEN` unset)
-
-```bash
-[ -z "$SLACK_BOT_TOKEN" ] && echo "Slack: skipping (SLACK_BOT_TOKEN unset)" || \
+[ -z "$SLACK_BOT_TOKEN" ] && echo "Slack: skipping" || \
 curl -sS -G -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
-  --data-urlencode 'query="shop builder" XLA pages after:<SINCE>' \
+  --data-urlencode 'query=<search terms> after:<SINCE>' \
   --data-urlencode 'count=20' \
   "https://slack.com/api/search.messages"
 ```
 
-Run one query per bullet in the goal-specific query list below. Each hit returns a `permalink` — use that as the link in the update.
+Per-goal Slack queries are listed in the Slack section below.
 
-**XSOLLA-8722 (Platform Infrastructure):** `"shop builder" XLA pages architecture` · `"gap analysis" XLA` · `"Xsolla ID" XLA pages` · `"games catalogue" OR "UGC" XLA` · `DEVALL-1512 OR DEVALL-714 OR DEVALL-824`
-
-**XSOLLA-8723 (XLA Pages Build):** `XLA pages plan OR plugins OR frames` · `"payment page" MVP PRD` · `"plugin board" XLA`
-
-**XSOLLA-8731 (SEO):** `"Tyler Erickson" SEO XLA` · `SEO "xla pages" OR "x.la"` · `sitemap OR canonicalization XLA`
-
-**XSOLLA-8733 (ELIAA):** `ELIAA OR "every link" OR affiliate XLA` · `"Shurik" affiliate pages` · `XLAPAGES-113 OR XLAPAGES-70`
-
-**XSOLLA-8861 (Payments MVP):** `Paze XLA OR "payment page"` · `DEVALL-1512 OR DEVALL-639 OR DEVALL-1289` · `ShopeePay`
-
-Append ` after:<SINCE>` to every query. Channel filter via ` in:#channel-name`.
-
-### 2d. Google Drive — REST v3 (skip if `$GOOGLE_OAUTH_TOKEN` unset)
+### 2d. Google Drive (skip if GOOGLE_OAUTH_TOKEN unset)
 
 ```bash
-[ -z "$GOOGLE_OAUTH_TOKEN" ] && echo "Drive: skipping (GOOGLE_OAUTH_TOKEN unset)" || \
+[ -z "$GOOGLE_OAUTH_TOKEN" ] && echo "Drive: skipping" || \
 curl -sS -G -H "Authorization: Bearer $GOOGLE_OAUTH_TOKEN" \
   --data-urlencode "q=fullText contains 'XLA Pages' and modifiedTime > '<SINCE>T00:00:00Z'" \
   --data-urlencode 'fields=files(id,name,webViewLink,modifiedTime)' \
-  --data-urlencode 'pageSize=25' \
   "https://www.googleapis.com/drive/v3/files"
 ```
-
-Repeat for `fullText contains 'Paze'`, `'ELIAA'`, `'games catalogue'`. Use `webViewLink` as the link in the update.
 
 ## Step 3: Write the Updates
 
