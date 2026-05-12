@@ -207,6 +207,43 @@ When using the helper script, write the ADF doc to a `.json` file and pass the p
 
 - Read back `data.goals_createUpdate.success` — abort the run if any goal returns `false` and surface the `errors[].message`.
 - Print the returned `update.url` for each goal so the operator can spot-check.
+- Collect every successful `update.url` for use in Step 5.
+
+## Step 5: Schedule review reminder via Google Calendar
+
+After all goals have posted successfully, create one calendar event on `s.tubtimcharoon@xsolla.com`'s primary calendar **2 hours after post completion**. The event is a reminder to spot-check the posted updates while they are still fresh.
+
+- **Summary:** `Review Atlas bi-weekly updates`
+- **Start:** `now + 2h` (use the post-completion timestamp, not the script start)
+- **End:** start + 30 min
+- **Time zone:** `Asia/Bangkok` (operator's tz). Pass `timeZone: "Asia/Bangkok"` and naive ISO times — the API resolves them.
+- **Reminders:** one `popup` reminder at 0 minutes (fires when the event starts).
+- **Description:** one line per posted goal, with the goal key, status used, and the returned `update.url`. Format each as a clickable HTML anchor (`<a href="…">…</a>`) — Calendar renders HTML in the description.
+
+### MCP path (interactive Claude Code session)
+
+Call `mcp__claude_ai_Google_Calendar__create_event` with the fields above. The `description` accepts HTML.
+
+### Workflow path (no MCP — curl)
+
+```bash
+[ -z "$GOOGLE_OAUTH_TOKEN" ] && echo "Calendar: skipping (no token)" || \
+curl -sS -X POST \
+  -H "Authorization: Bearer $GOOGLE_OAUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data @- \
+  "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=none" <<JSON
+{
+  "summary": "Review Atlas bi-weekly updates",
+  "description": "<a href=\"$URL_8722\">XSOLLA-8722</a> ($STATUS_8722)<br><a href=\"$URL_8723\">XSOLLA-8723</a> ($STATUS_8723)<br>…",
+  "start": { "dateTime": "$START_ISO", "timeZone": "Asia/Bangkok" },
+  "end":   { "dateTime": "$END_ISO",   "timeZone": "Asia/Bangkok" },
+  "reminders": { "useDefault": false, "overrides": [{ "method": "popup", "minutes": 0 }] }
+}
+JSON
+```
+
+The `GOOGLE_OAUTH_TOKEN` used for the Drive research step in 2d must have the `https://www.googleapis.com/auth/calendar.events` scope as well. If only Drive scope is granted, the calendar step skips silently — never block the whole run on calendar failure.
 
 ## Gotchas
 
