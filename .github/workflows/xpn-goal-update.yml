@@ -1,0 +1,53 @@
+name: XPN Goal Biweekly Update
+
+on:
+  schedule:
+    # Every other Monday at 09:00 UTC. Cron has no native "every 2 weeks",
+    # so the job runs weekly and the gate below skips odd ISO weeks.
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Run regardless of biweekly gate
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  post-update:
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
+      ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
+      ATLASSIAN_SITE: ${{ secrets.ATLASSIAN_SITE }}
+      GOOGLE_OAUTH_TOKEN: ${{ secrets.GOOGLE_OAUTH_TOKEN }}
+    steps:
+      - name: Biweekly gate
+        id: gate
+        run: |
+          week=$(date -u +%V)
+          if [[ "${{ inputs.force }}" == "true" ]] || (( week % 2 == 0 )); then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping: ISO week $week is an off week."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/checkout@v4
+
+      - name: Install Claude Code CLI
+        if: steps.gate.outputs.run == 'true'
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run xpn-goal-update skill
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          claude --print \
+            --allowedTools "Bash" \
+            -- \
+            "Run the xpn-goal-update skill (.claude/skills/xpn-goal-update/SKILL.md) end-to-end."
