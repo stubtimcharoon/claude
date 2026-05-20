@@ -1,9 +1,9 @@
 ---
-name: atlas-update
-description: Researches and publishes monthly Atlas goal updates for the five XLA Pages goals. Pulls signal from Slack (primary), Jira, Confluence, and Drive, drafts a bulleted ADF summary with inline links, and posts via goals_createUpdate. Use when posting monthly Atlas progress updates.
+name: xla-pages-atlas-update
+description: Researches and publishes monthly Atlas goal updates for the five XLA Pages goals. Pulls signal from Slack (primary), Jira, Confluence, and Drive, drafts a bulleted ADF summary with inline links, and posts via goals_createUpdate. Use when posting monthly Atlas progress updates for XLA Pages.
 ---
 
-# Atlas Goal Update Skill
+# XLA Pages Atlas Update Skill
 
 Posts monthly updates to five XLA Pages Atlas goals via `goals_createUpdate`. One bulleted ADF doc per goal with inline links. **Status defaults to the goal's current `state.value`** (passthrough) — only change it when signal clearly warrants.
 

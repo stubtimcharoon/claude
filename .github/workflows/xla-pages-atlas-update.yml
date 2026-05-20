@@ -1,4 +1,4 @@
-name: Atlas Goal Monthly Update
+name: XLA Pages Atlas Update
 
 on:
   schedule:
@@ -31,9 +31,9 @@ jobs:
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code
 
-      - name: Run atlas-update skill
+      - name: Run xla-pages-atlas-update skill
         run: |
           claude --print \
             --allowedTools "Bash" \
             -- \
-            "Run the atlas-update skill (.claude/skills/atlas-update/SKILL.md) end-to-end for all five goals."
+            "Run the xla-pages-atlas-update skill (.claude/skills/xla-pages-atlas-update/SKILL.md) end-to-end for all five goals."

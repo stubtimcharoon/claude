@@ -93,10 +93,10 @@ ADF shape: alternating `heading` (level 3, theme name) and `bulletList`:
 Write the ADF to `/tmp/XSOLLA-7370.adf.json`, then call the shared helper:
 
 ```bash
-.claude/skills/atlas-update/scripts/post-atlas-update.sh XSOLLA-7370 "$STATUS_PASSTHROUGH" /tmp/XSOLLA-7370.adf.json
+.claude/skills/xla-pages-atlas-update/scripts/post-atlas-update.sh XSOLLA-7370 "$STATUS_PASSTHROUGH" /tmp/XSOLLA-7370.adf.json
 ```
 
-(Reuses the atlas-update helper — same auth, same ARI resolution, same 3-day duplicate guard, same JSON-string ADF handling.) Capture `update.url` for Step 5.
+(Reuses the xla-pages-atlas-update helper — same auth, same ARI resolution, same 3-day duplicate guard, same JSON-string ADF handling.) Capture `update.url` for Step 5.
 
 ## Step 5: Schedule review reminder (Google Calendar)
 
