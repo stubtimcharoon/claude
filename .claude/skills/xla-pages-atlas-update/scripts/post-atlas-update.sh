@@ -33,7 +33,7 @@ api() {
 }
 
 # 1. Resolve goal key -> ARI and read latest update
-LOOKUP_QUERY='query($key:String!,$cid:ID!){goals_byKey(goalKey:$key,containerId:$cid)@optIn(to:"Townsquare"){id key name latestUpdate{creationDate}}}'
+LOOKUP_QUERY='query Resolve($key:String!,$cid:ID!){goals_byKey(goalKey:$key,containerId:$cid)@optIn(to:"Townsquare"){id key name}}'
 LOOKUP_PAYLOAD="$(jq -nc --arg key "$GOAL_KEY" --arg cid "$CONTAINER_ID" --arg query "$LOOKUP_QUERY" '{query:$query,variables:{key:$key,cid:$cid}}')"
 LOOKUP_RESP="$(api "$LOOKUP_PAYLOAD")"
 
@@ -44,7 +44,11 @@ if [[ -z "$GOAL_ARI" ]]; then
   exit 1
 fi
 
-LAST_UPDATE="$(jq -r '.data.goals_byKey.latestUpdate.creationDate // empty' <<<"$LOOKUP_RESP")"
+# 3-day duplicate guard: check most recent update via goals_updates connection.
+UPDATES_QUERY='query LastUpdate($id:ID!){node(id:$id){... on TownsquareGoal{updates(first:1){edges{node{creationDate}}}}}}'
+UPDATES_PAYLOAD="$(jq -nc --arg id "$GOAL_ARI" --arg query "$UPDATES_QUERY" '{query:$query,variables:{id:$id}}')"
+UPDATES_RESP="$(api "$UPDATES_PAYLOAD" 2>/dev/null || true)"
+LAST_UPDATE="$(jq -r '.data.node.updates.edges[0].node.creationDate // empty' <<<"$UPDATES_RESP" 2>/dev/null || true)"
 if [[ -n "$LAST_UPDATE" ]]; then
   if [[ "$(date -u -d "$LAST_UPDATE" +%s 2>/dev/null || echo 0)" -gt "$(date -u -d '3 days ago' +%s)" ]]; then
     echo "Skipping $GOAL_KEY: latest update at $LAST_UPDATE is within 3 days." >&2

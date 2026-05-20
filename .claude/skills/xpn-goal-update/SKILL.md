@@ -129,3 +129,4 @@ Skip silently (don't fail the run) if the calendar step errors — the Atlas pos
 - Numbers in XPN updates aren't decorative — preserve exact figures from the sync page (e.g. `$20.4K +152% MoM`, `591 sales`, `42 creators`).
 - Status defaults to passthrough. Only set `at_risk` if the sync page explicitly flags a hard external deadline slipping.
 - If the latest descendant of `23096623175` is older than the goal's last Atlas update (no new sync since last post), exit cleanly — don't re-post stale content.
+- **Atlas has a hard length cap on `summary`** (≈300 visible chars). Long docs come back as `"That's a pretty long update mate..."` with `success: false`. Keep the posted ADF to one short `bulletList` of 4–7 punchy bullets + a `Source` link. The richer themed view lives on the Confluence sync the update links to, not on the goal page itself.
