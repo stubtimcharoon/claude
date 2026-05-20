@@ -107,4 +107,4 @@ Interactive (Claude Code) path: use the `mcp__claude_ai_Google_Calendar__create_
 - `summary` is a **String scalar**: pass `JSON.stringify(adf)`, not the ADF object. The helper script handles this.
 - Status defaults to passthrough (the goal's current `state.value`). Change only when signal explicitly warrants.
 - If a research source errors, log and continue — never fail the whole run on one source.
-- **Atlas has a hard length cap on `summary`** (≈300 visible chars). Long docs return `"That's a pretty long update mate..."` with `success: false`. Keep each goal's ADF to one tight `bulletList` of 4–7 short bullets — no long-form prose, no per-theme headings inside the doc.
+- **Atlas hard-caps `summary` at 280 visible characters.** Over that returns `"That's a pretty long update mate..."` with `success: false`. Per goal, use a single short paragraph in `"Key wins: <comma list>. <follow-up>."` format — no bullets, no headings, no inline links. Count before posting and trim phrases until ≤ 280 chars.

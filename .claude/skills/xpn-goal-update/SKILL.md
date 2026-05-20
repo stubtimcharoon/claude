@@ -65,17 +65,17 @@ Call `goals_byKey(goalKey: "XSOLLA-7370", containerId)`. Record `id` (ARI), `sta
 
 ## Step 3: Convert the sync page into a single "Key wins" line
 
-Atlas hard-caps the goal-update summary at **≈300 visible chars** — bulleted, themed bodies get rejected with `"That's a pretty long update mate..."`. So the posted update is **one short paragraph in `"Key wins: <comma list>. <follow-up sentences>."` format**.
+Atlas hard-caps the goal-update summary at **280 visible characters**. Anything longer is rejected with `"That's a pretty long update mate..."`. So the posted update is **one short paragraph in `"Key wins: <comma list>. <follow-up sentences>."` format**.
 
 Format:
 - Single ADF `paragraph` node (no `bulletList`, no `heading`).
 - Starts with `Key wins:` then 5–8 comma-separated phrases, each a concrete fact (decision, ticket, number, person). Period. Then 1–2 short follow-up sentences for things in progress, post-analysis, or partner-joining items.
 - Preserve numbers exactly (revenue, sales, MoM%, creator counts). Don't paraphrase precision away.
 - **No links inside the summary** — they don't fit and the goal page already shows the goal context. The richer themed view lives on the Confluence sync page itself.
-- Cap the total at **~280 visible chars** to stay safely under the limit.
+- **Total length must be ≤ 280 characters.** Count before posting; trim phrases (use "TCEU" instead of "TwitchCon EU", "rev" instead of "revenue", drop weakest item) until it fits.
 
-Example (real, ≈285 chars):
-> Key wins: 3 Astragon campaigns live, first China publisher, TwitchCon EU 42 creators + panel approved, KYC legacy rollout complete, Lightstream Layer Groups shipped, v1 product dashboard live, Apr revenue $20.4K (+152% MoM). LATAM Bundle 591 sales wrapped, post-analysis in progress. Purple Tree joining XPN; XPN EU field trip in planning.
+Example (268 chars):
+> Key wins: 3 Astragon live, first China pub, TCEU 42 creators + panel approved, KYC legacy done, Lightstream Layer Groups shipped, v1 product dashboard live, Apr rev $20.4K (+152% MoM). LATAM Bundle 591 sales wrapped, post-analysis in progress. Purple Tree joining XPN.
 
 ADF shape:
 ```
@@ -125,4 +125,4 @@ Skip silently (don't fail the run) if the calendar step errors — the Atlas pos
 - Numbers in XPN updates aren't decorative — preserve exact figures from the sync page (e.g. `$20.4K +152% MoM`, `591 sales`, `42 creators`).
 - Status defaults to passthrough. Only set `at_risk` if the sync page explicitly flags a hard external deadline slipping.
 - If the latest descendant of `23096623175` is older than the goal's last Atlas update (no new sync since last post), exit cleanly — don't re-post stale content.
-- **Atlas has a hard length cap on `summary`** (≈300 visible chars). Long docs come back as `"That's a pretty long update mate..."` with `success: false`. The "Key wins: …" single-paragraph format in Step 3 is built around this cap — don't reintroduce bullets, headings, or per-theme structure inside the summary.
+- **Atlas hard-caps `summary` at 280 visible characters.** Over that returns `"That's a pretty long update mate..."` with `success: false`. The "Key wins: …" single-paragraph format in Step 3 is built around this cap — don't reintroduce bullets, headings, or per-theme structure.
