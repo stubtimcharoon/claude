@@ -1,11 +1,11 @@
 ---
 name: xla-pages-atlas-update
-description: Researches and publishes monthly Atlas goal updates for the five XLA Pages goals. Pulls signal from Slack (primary), Jira, Confluence, and Drive, drafts a bulleted ADF summary with inline links, and posts via goals_createUpdate. Use when posting monthly Atlas progress updates for XLA Pages.
+description: Researches and publishes bi-weekly Atlas goal updates for the five XLA Pages goals. Pulls signal from Slack (primary), Jira, Confluence, and Drive, drafts a bulleted ADF summary with inline links, and posts via goals_createUpdate. Runs on the same Wednesdays as xpn-goal-update. Use when posting bi-weekly Atlas progress updates for XLA Pages.
 ---
 
 # XLA Pages Atlas Update Skill
 
-Posts monthly updates to five XLA Pages Atlas goals via `goals_createUpdate`. One bulleted ADF doc per goal with inline links. **Status defaults to the goal's current `state.value`** (passthrough) — only change it when signal clearly warrants.
+Posts bi-weekly updates to five XLA Pages Atlas goals via `goals_createUpdate`. One short paragraph per goal in "Key wins:" format (Atlas caps the summary at 280 visible characters). **Status defaults to the goal's current `state.value`** (passthrough). Only change it when signal clearly warrants.
 
 ## Constants
 
@@ -19,8 +19,8 @@ Posts monthly updates to five XLA Pages Atlas goals via `goals_createUpdate`. On
 `ATLASSIAN_EMAIL`, `ATLASSIAN_API_TOKEN` (classic / unscoped), `ATLASSIAN_SITE`.
 
 Optional (each source skipped silently if its var is unset):
-- `SLACK_BOT_TOKEN` — Slack `search:read`. **Primary research source.**
-- `GOOGLE_OAUTH_TOKEN` — `drive.readonly` + `calendar.events` scopes.
+- `SLACK_BOT_TOKEN`: Slack `search:read`. **Primary research source.**
+- `GOOGLE_OAUTH_TOKEN`: `drive.readonly` + `calendar.events` scopes.
 
 ## Goals
 
@@ -34,13 +34,13 @@ Optional (each source skipped silently if its var is unset):
 
 ## Step 1: Resolve each goal
 
-Call `goals_byKey(goalKey, containerId)` and record `id` (ARI), `state.value` (= passthrough status), `latestUpdate.creationDate`. **Skip goals whose last update is <3 days old** — the helper script handles this automatically.
+Call `goals_byKey(goalKey, containerId)` and record `id` (ARI), `state.value` (= passthrough status), `latestUpdate.creationDate`. **Skip goals whose last update is <3 days old**: the helper script handles this automatically.
 
 ## Step 2: Research (Slack primary, then supplements)
 
 Window: since each goal's `latestUpdate.creationDate` (fall back to 30 days). Caps per source: **Slack 15, Jira 20, Confluence 10, Drive 10.**
 
-### Slack — primary
+### Slack: primary
 Channel-scoped first: `in:<#C09JA0JH17V>` (`#xla-pages-workgroup`, private, the canonical workgroup). Then keyword search across public channels (e.g. "Paze", "ELIAA", "SEO PRD", "gap analysis") only if channel-scoped is thin.
 
 ```bash
@@ -49,13 +49,13 @@ Channel-scoped first: `in:<#C09JA0JH17V>` (`#xla-pages-workgroup`, private, the 
   --data-urlencode 'count=15' https://slack.com/api/search.messages
 ```
 
-### Jira — supplement
+### Jira: supplement
 Hit each goal's key tickets via `getJiraIssue`, plus one JQL: `project = XLAPAGES AND updated >= "<SINCE>" ORDER BY updated DESC` (cap 20).
 
-### Confluence — supplement
+### Confluence: supplement
 One CQL: `space = "XNTWRK" AND lastmodified >= "<SINCE>" ORDER BY lastmodified DESC` (cap 10).
 
-### Drive — optional supplement
+### Drive: optional supplement
 Skip unless `GOOGLE_OAUTH_TOKEN` set. Query: `fullText contains 'XLA Pages' and modifiedTime > '<SINCE>T00:00:00Z'`.
 
 ## Step 3: Write the update (bullets only)
@@ -64,7 +64,7 @@ For each goal, an ADF doc with **one `bulletList`** of 4–6 list items. No head
 
 Rules:
 - Each bullet = one specific fact: decision, ticket, person, blocker, shipped scope. No filler.
-- Every Jira key, Confluence page, and Slack permalink must be a hyperlinked `text` node (text + `link` mark) — never bare URL.
+- Every Jira key, Confluence page, and Slack permalink must be a hyperlinked `text` node (text + `link` mark): never bare URL.
 - Order most important first.
 - Don't repeat content from the prior update unless still current.
 
@@ -87,7 +87,7 @@ After all goals post, create **one** event on `s.tubtimcharoon@xsolla.com`'s pri
 - Summary: `Review Atlas monthly updates`
 - Start: `now + 2h`, end: start + 30 min, time zone: `Asia/Bangkok`
 - Reminder: one `popup` at 0 minutes
-- Description: one line per posted goal — `<a href="$URL">$KEY</a> · $STATUS` — joined with `<br>`
+- Description: one line per posted goal: `<a href="$URL">$KEY</a> · $STATUS`: joined with `<br>`
 
 Workflow path (curl), skipped silently if no token / wrong scope:
 
@@ -103,8 +103,8 @@ Interactive (Claude Code) path: use the `mcp__claude_ai_Google_Calendar__create_
 ## Gotchas
 
 - `@optIn(to: "Townsquare")` is mandatory on every op.
-- Use a **classic** API token — scoped tokens lack Townsquare access.
+- Use a **classic** API token: scoped tokens lack Townsquare access.
 - `summary` is a **String scalar**: pass `JSON.stringify(adf)`, not the ADF object. The helper script handles this.
 - Status defaults to passthrough (the goal's current `state.value`). Change only when signal explicitly warrants.
-- If a research source errors, log and continue — never fail the whole run on one source.
-- **Atlas hard-caps `summary` at 280 visible characters.** Over that returns `"That's a pretty long update mate..."` with `success: false`. Per goal, use a single short paragraph in `"Key wins: <comma list>. <follow-up>."` format — no bullets, no headings, no inline links. Count before posting and trim phrases until ≤ 280 chars.
+- If a research source errors, log and continue: never fail the whole run on one source.
+- **Atlas hard-caps `summary` at 280 visible characters.** Over that returns `"That's a pretty long update mate..."` with `success: false`. Per goal, use a single short paragraph in `"Key wins: <comma list>. <follow-up>."` format: no bullets, no headings, no inline links. Count before posting and trim phrases until ≤ 280 chars.

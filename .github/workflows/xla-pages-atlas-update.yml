@@ -2,12 +2,14 @@ name: XLA Pages Atlas Update
 
 on:
   schedule:
-    # First Monday of each month at 09:00 UTC
-    - cron: '0 9 1-7 * 1'
+    # Every other Wednesday at 09:00 UTC. Cron fires weekly; the biweekly
+    # gate below skips odd ISO weeks so this runs on the same Wednesdays
+    # as the XPN goal workflow.
+    - cron: '0 9 * * 3'
   workflow_dispatch:
     inputs:
       force:
-        description: Run regardless of schedule
+        description: Run regardless of biweekly gate
         type: boolean
         default: false
 
@@ -25,13 +27,27 @@ jobs:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
       GOOGLE_OAUTH_TOKEN: ${{ secrets.GOOGLE_OAUTH_TOKEN }}
     steps:
+      - name: Biweekly gate
+        id: gate
+        run: |
+          week=$(date -u +%V)
+          if [[ "${{ inputs.force }}" == "true" ]] || (( week % 2 == 0 )); then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping: ISO week $week is an off week."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
+        if: steps.gate.outputs.run == 'true'
         uses: actions/checkout@v4
 
       - name: Install Claude Code CLI
+        if: steps.gate.outputs.run == 'true'
         run: npm install -g @anthropic-ai/claude-code
 
       - name: Run xla-pages-atlas-update skill
+        if: steps.gate.outputs.run == 'true'
         run: |
           claude --print \
             --allowedTools "Bash" \

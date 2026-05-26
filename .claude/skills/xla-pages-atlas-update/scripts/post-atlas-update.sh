@@ -58,7 +58,7 @@ fi
 
 echo "Resolved $GOAL_KEY -> $GOAL_ARI"
 
-# 2. Build mutation input — summary must be a JSON-stringified ADF string
+# 2. Build mutation input: summary must be a JSON-stringified ADF string
 SUMMARY_STRING="$(jq -c '.' "$SUMMARY_FILE")"
 INPUT="$(jq -nc \
   --arg goalId "$GOAL_ARI" \

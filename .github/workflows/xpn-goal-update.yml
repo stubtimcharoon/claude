@@ -2,9 +2,10 @@ name: XPN Goal Biweekly Update
 
 on:
   schedule:
-    # Every other Monday at 09:00 UTC. Cron has no native "every 2 weeks",
-    # so the job runs weekly and the gate below skips odd ISO weeks.
-    - cron: '0 9 * * 1'
+    # Every other Wednesday at 09:00 UTC. Cron has no native "every 2 weeks",
+    # so the job runs weekly and the gate below skips odd ISO weeks. Runs on
+    # the same Wednesdays as the xla-pages-atlas-update workflow.
+    - cron: '0 9 * * 3'
   workflow_dispatch:
     inputs:
       force:

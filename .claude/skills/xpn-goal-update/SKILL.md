@@ -19,13 +19,13 @@ Posts a bi-weekly update to Atlas goal **XSOLLA-7370** (XPN program). One ADF do
 `ATLASSIAN_EMAIL`, `ATLASSIAN_API_TOKEN` (classic / unscoped), `ATLASSIAN_SITE`.
 
 Optional:
-- `GOOGLE_OAUTH_TOKEN` — `calendar.events` scope (Step 5 reminder; skipped silently if missing).
+- `GOOGLE_OAUTH_TOKEN`: `calendar.events` scope (Step 5 reminder; skipped silently if missing).
 
 ## Goal scope
 
 | Key | Initiative | Themes typically covered |
 |---|---|---|
-| XSOLLA-7370 | XPN — Xsolla Partner Network | Business Development · Platform & Product · AI & Automation · Influencer Relations · Marketing · Revenue · Blockers & Risks · Next 2 Weeks |
+| XSOLLA-7370 | XPN: Xsolla Partner Network | Business Development · Platform & Product · AI & Automation · Influencer Relations · Marketing · Revenue · Blockers & Risks · Next 2 Weeks |
 
 ## Source of truth
 
@@ -35,7 +35,7 @@ Parent page: https://xsolla.atlassian.net/wiki/spaces/XNTWRK/pages/23096623175/X
 
 ## Step 1: Resolve the goal
 
-Call `goals_byKey(goalKey: "XSOLLA-7370", containerId)`. Record `id` (ARI), `state.value` (= passthrough status), `latestUpdate.creationDate`. **Skip if last update is <3 days old** — the helper script handles this.
+Call `goals_byKey(goalKey: "XSOLLA-7370", containerId)`. Record `id` (ARI), `state.value` (= passthrough status), `latestUpdate.creationDate`. **Skip if last update is <3 days old**: the helper script handles this.
 
 ## Step 2: Fetch the latest sync page
 
@@ -49,7 +49,7 @@ Call `goals_byKey(goalKey: "XSOLLA-7370", containerId)`. Record `id` (ARI), `sta
      "https://$ATLASSIAN_SITE/wiki/api/v2/pages/23096623175/descendants?limit=50&sort=-created-date"
    ```
 
-   Abort if the latest descendant is older than the goal's last Atlas update — there's nothing new to post.
+   Abort if the latest descendant is older than the goal's last Atlas update: there's nothing new to post.
 
 2. **Read the chosen page in body-storage form** (preserves headings, lists, links).
 
@@ -61,7 +61,7 @@ Call `goals_byKey(goalKey: "XSOLLA-7370", containerId)`. Record `id` (ARI), `sta
      "https://$ATLASSIAN_SITE/wiki/api/v2/pages/<CHILD_ID>?body-format=storage"
    ```
 
-3. Record the child page URL and title — both go into the Atlas update so readers can click through to the full sync notes.
+3. Record the child page URL and title: both go into the Atlas update so readers can click through to the full sync notes.
 
 ## Step 3: Convert the sync page into a single "Key wins" line
 
@@ -71,7 +71,7 @@ Format:
 - Single ADF `paragraph` node (no `bulletList`, no `heading`).
 - Starts with `Key wins:` then 5–8 comma-separated phrases, each a concrete fact (decision, ticket, number, person). Period. Then 1–2 short follow-up sentences for things in progress, post-analysis, or partner-joining items.
 - Preserve numbers exactly (revenue, sales, MoM%, creator counts). Don't paraphrase precision away.
-- **No links inside the summary** — they don't fit and the goal page already shows the goal context. The richer themed view lives on the Confluence sync page itself.
+- **No links inside the summary**: they don't fit and the goal page already shows the goal context. The richer themed view lives on the Confluence sync page itself.
 - **Total length must be ≤ 280 characters.** Count before posting; trim phrases (use "TCEU" instead of "TwitchCon EU", "rev" instead of "revenue", drop weakest item) until it fits.
 
 Example (268 chars):
@@ -92,7 +92,7 @@ Write the ADF to `/tmp/XSOLLA-7370.adf.json`, then call the shared helper:
 .claude/skills/xla-pages-atlas-update/scripts/post-atlas-update.sh XSOLLA-7370 "$STATUS_PASSTHROUGH" /tmp/XSOLLA-7370.adf.json
 ```
 
-(Reuses the xla-pages-atlas-update helper — same auth, same ARI resolution, same 3-day duplicate guard, same JSON-string ADF handling.) Capture `update.url` for Step 5.
+(Reuses the xla-pages-atlas-update helper: same auth, same ARI resolution, same 3-day duplicate guard, same JSON-string ADF handling.) Capture `update.url` for Step 5.
 
 ## Step 5: Schedule review reminder (Google Calendar)
 
@@ -115,14 +115,14 @@ Workflow path (curl), skipped silently if no token / wrong scope:
 
 `$EVENT_JSON` shape: `{summary, description, start:{dateTime,timeZone}, end:{...}, reminders:{useDefault:false, overrides:[{method:"popup", minutes:0}]}}`.
 
-Skip silently (don't fail the run) if the calendar step errors — the Atlas post already succeeded.
+Skip silently (don't fail the run) if the calendar step errors: the Atlas post already succeeded.
 
 ## Gotchas
 
 - `@optIn(to: "Townsquare")` is mandatory on every op.
-- Use a **classic** Atlassian token — scoped tokens lack Townsquare access.
+- Use a **classic** Atlassian token: scoped tokens lack Townsquare access.
 - `summary` is a **String scalar**: pass `JSON.stringify(adf)`, not the ADF object. The helper script handles this.
-- Numbers in XPN updates aren't decorative — preserve exact figures from the sync page (e.g. `$20.4K +152% MoM`, `591 sales`, `42 creators`).
+- Numbers in XPN updates aren't decorative: preserve exact figures from the sync page (e.g. `$20.4K +152% MoM`, `591 sales`, `42 creators`).
 - Status defaults to passthrough. Only set `at_risk` if the sync page explicitly flags a hard external deadline slipping.
-- If the latest descendant of `23096623175` is older than the goal's last Atlas update (no new sync since last post), exit cleanly — don't re-post stale content.
-- **Atlas hard-caps `summary` at 280 visible characters.** Over that returns `"That's a pretty long update mate..."` with `success: false`. The "Key wins: …" single-paragraph format in Step 3 is built around this cap — don't reintroduce bullets, headings, or per-theme structure.
+- If the latest descendant of `23096623175` is older than the goal's last Atlas update (no new sync since last post), exit cleanly: don't re-post stale content.
+- **Atlas hard-caps `summary` at 280 visible characters.** Over that returns `"That's a pretty long update mate..."` with `success: false`. The "Key wins: …" single-paragraph format in Step 3 is built around this cap: don't reintroduce bullets, headings, or per-theme structure.
