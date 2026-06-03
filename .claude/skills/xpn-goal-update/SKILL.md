@@ -101,7 +101,10 @@ After the Atlas post succeeds, create **one** event on `s.tubtimcharoon@xsolla.c
 - Summary: `Review XPN bi-weekly update`
 - Start: `now + 2h`, end: start + 30 min, time zone: `Asia/Bangkok`
 - Reminder: one `popup` at 0 minutes
-- Description: `<a href="$URL">XSOLLA-7370 (XPN)</a> · $STATUS · week $ISO_WEEK`
+- Description: HTML `<ul>` with one `<li>` for the goal plus one `<li>` for the source sync. Hyperlink every reference inline:
+  - `<li><a href="$UPDATE_URL">XSOLLA-7370</a> XPN ($STATUS, week $ISO_WEEK)</li>`
+  - `<li>Source: <a href="$SYNC_PAGE_URL">$SYNC_PAGE_TITLE</a></li>`
+  - Plus, for any Jira/Confluence/Slack URLs that drove this cycle's "Key wins" line, add one `<li><a href="$URL">$KEY_OR_TITLE</a></li>` so a reader can click through to the supporting reference (the 280-char Atlas summary can't carry these links itself).
 
 Interactive (Claude Code): use `mcp__claude_ai_Google_Calendar__create_event` with the fields above.
 

@@ -84,10 +84,10 @@ The script resolves the ARI, applies the 3-day duplicate-guard, stringifies the 
 
 After all goals post, create **one** event on `s.tubtimcharoon@xsolla.com`'s primary calendar:
 
-- Summary: `Review Atlas monthly updates`
+- Summary: `Review Atlas bi-weekly updates (XLA Pages)`
 - Start: `now + 2h`, end: start + 30 min, time zone: `Asia/Bangkok`
 - Reminder: one `popup` at 0 minutes
-- Description: one line per posted goal: `<a href="$URL">$KEY</a> · $STATUS`: joined with `<br>`
+- Description: HTML `<ul>` with one `<li>` per posted goal. Each list item: `<a href="$URL">$KEY</a> $NAME ($STATUS)`. Hyperlink the goal key, not the surrounding prose. Use the `<ul><li>` structure, not `<br>`-separated lines.
 
 Workflow path (curl), skipped silently if no token / wrong scope:
 
