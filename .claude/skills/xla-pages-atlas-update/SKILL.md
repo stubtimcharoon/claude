@@ -1,11 +1,11 @@
 ---
 name: xla-pages-atlas-update
-description: Researches and publishes bi-weekly Atlas goal updates for the five XLA Pages goals. Pulls signal from Slack (primary), Jira, Confluence, and Drive, drafts a bulleted ADF summary with inline links, and posts via goals_createUpdate. Runs on the same Wednesdays as xpn-goal-update. Use when posting bi-weekly Atlas progress updates for XLA Pages.
+description: Researches and publishes Atlas goal updates on the 8th and 22nd of every month for the five XLA Pages goals. Pulls signal from Slack (primary), Jira, Confluence, and Drive, drafts a short "Key wins:" paragraph per goal, and posts via goals_createUpdate. Runs on the same schedule as xpn-goal-update. Use when posting twice-monthly Atlas progress updates for XLA Pages.
 ---
 
 # XLA Pages Atlas Update Skill
 
-Posts bi-weekly updates to five XLA Pages Atlas goals via `goals_createUpdate`. One short paragraph per goal in "Key wins:" format (Atlas caps the summary at 280 visible characters). **Status defaults to the goal's current `state.value`** (passthrough). Only change it when signal clearly warrants.
+Posts twice-monthly updates (8th and 22nd) to five XLA Pages Atlas goals via `goals_createUpdate`. One short paragraph per goal in "Key wins:" format (Atlas caps the summary at 280 visible characters). **Status defaults to the goal's current `state.value`** (passthrough). Only change it when signal clearly warrants.
 
 ## Constants
 

@@ -1,11 +1,11 @@
 ---
 name: xpn-goal-update
-description: Reads the latest XPN Builders & Sellers Sync page in Confluence (children of XNTWRK/23096623175), converts it into a themed bulleted ADF, posts as a bi-weekly Atlas goal update on XSOLLA-7370 via goals_createUpdate, and schedules a Google Calendar reminder 2h later to spot-check. Use for bi-weekly XPN progress posts.
+description: Reads the latest XPN Builders & Sellers Sync page in Confluence (children of XNTWRK/23096623175), drafts a short "Key wins:" paragraph, posts it as an Atlas goal update on XSOLLA-7370 (twice-monthly on the 8th and 22nd) via goals_createUpdate, and schedules a Google Calendar reminder 2h later to spot-check. Use for twice-monthly XPN progress posts.
 ---
 
 # XPN Goal Update Skill
 
-Posts a bi-weekly update to Atlas goal **XSOLLA-7370** (XPN program). One ADF doc grouped by theme (BD, Platform & Product, AI & Automation, IR, Marketing, Revenue, Blockers, Next 2 weeks). Status defaults to the goal's current `state.value` (passthrough); change only on explicit signal.
+Posts a twice-monthly update (8th and 22nd) to Atlas goal **XSOLLA-7370** (XPN program). Single short paragraph in "Key wins:" format (Atlas caps the summary at 280 visible characters). Status defaults to the goal's current `state.value` (passthrough); change only on explicit signal.
 
 ## Constants
 
