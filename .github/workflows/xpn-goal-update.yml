@@ -12,6 +12,7 @@ permissions:
 jobs:
   post-update:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
@@ -21,6 +22,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Preflight secrets
+        run: |
+          fail=0
+          for v in ANTHROPIC_API_KEY ATLASSIAN_EMAIL ATLASSIAN_API_TOKEN ATLASSIAN_SITE; do
+            if [ -z "${!v}" ]; then echo "::error::required secret $v is empty"; fail=1; fi
+          done
+          if [ -z "$GOOGLE_OAUTH_TOKEN" ]; then echo "::warning::optional secret GOOGLE_OAUTH_TOKEN is empty; the calendar reminder will be skipped"; fi
+          [ "$fail" -eq 0 ] || exit 1
 
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code

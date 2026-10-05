@@ -29,31 +29,37 @@ Optional:
 
 ## Source of truth
 
-The **XPN Builders & Sellers Sync** Confluence page (XNTWRK / id `23096623175`) is the parent of one child page per sync cycle. The skill always uses the **most recently created** descendant as the source. Do not invent content; convert what is on the page.
+The **XPN Builders & Sellers Sync** Confluence page (XNTWRK / id `23096623175`) is the parent of one child page per sync cycle. The skill uses the **newest cycle page by the date in its title** as the source (see Step 2). Do not invent content; convert what is on the page.
+
+Note the naming drift: the parent is called "XPN Builders & Sellers Sync" but the child cycle pages are titled `YYYY-MM-DD Partner Network Product x Business`. Match on the child pattern, not the parent's name.
 
 Parent page: https://xsolla.atlassian.net/wiki/spaces/XNTWRK/pages/23096623175/XPN+Builders+Sellers+Sync
 
 ## Step 1: Resolve the goal
 
-Call `goals_byKey(goalKey: "XSOLLA-7370", containerId)`. Record `id` (ARI), `state.value` (= passthrough status), `latestUpdate.creationDate`. **Skip if last update is <3 days old**: the helper script handles this.
+Call `goals_byKey(goalKey: "XSOLLA-7370", containerId)`. Record `id` (ARI) and `state.value` (= passthrough status). **Skip if last update is <3 days old**: the helper script handles this.
+
+The helper script's lookup requests only `id key name`, so it does not return `state.value`. Query it separately (same shape as the xla-pages-atlas-update Step 1 query) and pass the result straight through as the status argument.
 
 ## Step 2: Fetch the latest sync page
 
-1. **List descendants** of page `23096623175` and pick the most recently created.
+1. **List descendants** of page `23096623175` and pick the newest cycle page **by the date in its title**.
 
-   Interactive: `mcp__claude_ai_Atlassian__getConfluencePageDescendants` with `cloudId: xsolla.atlassian.net`, `pageId: 23096623175`. Sort the response by `createdAt` desc and take the first whose `createdAt` falls within the current run window (fall back to most recent if window is empty).
+   Child pages are titled `YYYY-MM-DD Partner Network Product x Business`. Select by parsing that leading date out of the title and taking the largest one that is not in the future. **Do not sort by created date**: `getConfluencePageDescendants` returns only `id`, `status`, `title`, `parentId`, `depth`, `childPosition`, `type`, and `lastModified`, with no `createdAt` field at all, so a created-date sort silently picks the wrong page. Use `lastModified` only to break a tie between two identical title dates.
+
+   Interactive: `mcp__Atlassian__getConfluencePageDescendants` with `cloudId: xsolla.atlassian.net`, `pageId: 23096623175`, `limit: 100`. Paginate with `cursor` if a cursor comes back. (As of 2026-10 the parent has ~36 descendants, returned in one call.)
 
    Workflow (curl):
    ```bash
    curl -sS -u "$ATLASSIAN_EMAIL:$ATLASSIAN_API_TOKEN" \
-     "https://$ATLASSIAN_SITE/wiki/api/v2/pages/23096623175/descendants?limit=50&sort=-created-date"
+     "https://$ATLASSIAN_SITE/wiki/api/v2/pages/23096623175/descendants?limit=100"
    ```
 
-   Abort if the latest descendant is older than the goal's last Atlas update: there's nothing new to post.
+   Abort if the selected page's title date is older than the goal's last Atlas update: there's nothing new to post.
 
 2. **Read the chosen page in body-storage form** (preserves headings, lists, links).
 
-   Interactive: `mcp__claude_ai_Atlassian__getConfluencePage` with the child `pageId`.
+   Interactive: `mcp__Atlassian__getConfluencePage` with the child `pageId`.
 
    Workflow:
    ```bash
@@ -106,7 +112,9 @@ After the Atlas post succeeds, create **one** event on `s.tubtimcharoon@xsolla.c
   - `<li>Source: <a href="$SYNC_PAGE_URL">$SYNC_PAGE_TITLE</a></li>`
   - Plus, for any Jira/Confluence/Slack URLs that drove this cycle's "Key wins" line, add one `<li><a href="$URL">$KEY_OR_TITLE</a></li>` so a reader can click through to the supporting reference (the 280-char Atlas summary can't carry these links itself).
 
-Interactive (Claude Code): use `mcp__claude_ai_Google_Calendar__create_event` with the fields above.
+Interactive (Claude Code): use `mcp__Google-Calendar__create_event` with the fields above.
+
+If this skill and `xla-pages-atlas-update` run in the same cycle, each creates its own reminder, so expect two events. For a single combined reminder covering all six goals, run both skills from one prompt and create one event at the end.
 
 Workflow path (curl), skipped silently if no token / wrong scope:
 ```bash
@@ -126,6 +134,9 @@ Skip silently (don't fail the run) if the calendar step errors: the Atlas post a
 - Use a **classic** Atlassian token: scoped tokens lack Townsquare access.
 - `summary` is a **String scalar**: pass `JSON.stringify(adf)`, not the ADF object. The helper script handles this.
 - Numbers in XPN updates aren't decorative: preserve exact figures from the sync page (e.g. `$20.4K +152% MoM`, `591 sales`, `42 creators`).
+- No em-dashes anywhere in the posted summary. Substitute a period, colon, parens, or comma.
+- **Where this skill can actually run.** Atlas goal updates live only behind the Townsquare GraphQL endpoint, which needs direct HTTPS to `xsolla.atlassian.net`. The Atlassian MCP connector does not expose `goals_byKey` or `goals_createUpdate`, so a working Confluence connector lets you *research* but never *post*. Run from GitHub Actions (`.github/workflows/xpn-goal-update.yml`) or another environment with unrestricted egress.
+- **Distinguish a network block from a bad token.** `curl: (56) CONNECT tunnel failed, response 403` or `HTTP:000` means the egress proxy refused the host before auth was attempted: network policy, not credentials. Don't retry with a different token. A rotated token instead gives a real **401** on a connection that succeeded. When blocked, save the drafted ADF, report the blocker and the draft text, and state plainly that nothing was posted.
 - Status defaults to passthrough. Only set `at_risk` if the sync page explicitly flags a hard external deadline slipping.
-- If the latest descendant of `23096623175` is older than the goal's last Atlas update (no new sync since last post), exit cleanly: don't re-post stale content.
+- If the newest cycle page under `23096623175` (by title date) is older than the goal's last Atlas update, there has been no new sync since the last post: exit cleanly, don't re-post stale content.
 - **Atlas hard-caps `summary` at 280 visible characters.** Over that returns `"That's a pretty long update mate..."` with `success: false`. The "Key wins: …" single-paragraph format in Step 3 is built around this cap: don't reintroduce bullets, headings, or per-theme structure.
