@@ -1,0 +1,12 @@
+# Stage A output of the atlas-goal-update pipeline. Must NEVER be committed.
+drafts/
+
+# Local secrets
+.env
+credentials.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

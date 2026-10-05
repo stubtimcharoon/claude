@@ -1,0 +1,137 @@
+name: Atlas Goal Update
+
+on:
+  schedule:
+    # 8th and 22nd of every month at 09:00 UTC.
+    - cron: '0 9 8,22 * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Validate and print what would post, without posting.'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  post-updates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Subscription auth (preferred). Generate locally with `claude setup-token`.
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      # API-credit auth (fallback). Leave unset if the org does not allow API credits.
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
+      ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
+      ATLASSIAN_SITE: ${{ secrets.ATLASSIAN_SITE }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Preflight secrets
+        run: |
+          fail=0
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::no Claude auth configured. Set CLAUDE_CODE_OAUTH_TOKEN (run 'claude setup-token' locally) or ANTHROPIC_API_KEY."
+            fail=1
+          elif [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "Claude auth: subscription OAuth token"
+          else
+            echo "Claude auth: ANTHROPIC_API_KEY (requires API credit balance)"
+          fi
+          for v in ATLASSIAN_EMAIL ATLASSIAN_API_TOKEN ATLASSIAN_SITE; do
+            if [ -z "${!v}" ]; then echo "::error::required secret $v is empty"; fail=1; fi
+          done
+          if [ -z "$SLACK_BOT_TOKEN" ]; then echo "::warning::optional secret SLACK_BOT_TOKEN is empty; Slack signal will be skipped or degraded"; fi
+          [ "$fail" -eq 0 ] || exit 1
+
+      - name: Verify Atlassian credentials before burning a run
+        run: |
+          code="$(curl -sS -o /tmp/whoami.json -w '%{http_code}' --max-time 30 \
+            -u "$ATLASSIAN_EMAIL:$ATLASSIAN_API_TOKEN" \
+            "https://$ATLASSIAN_SITE/rest/api/3/myself" || echo 000)"
+          case "$code" in
+            200) echo "Atlassian token OK" ;;
+            401|403) echo "::error::Atlassian auth failed (HTTP $code). TOKEN ROTATION NEEDED."; exit 1 ;;
+            000) echo "::error::could not reach $ATLASSIAN_SITE (network/DNS problem), NOT an auth problem"; exit 1 ;;
+            *)   echo "::error::unexpected HTTP $code from $ATLASSIAN_SITE"; exit 1 ;;
+          esac
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          pip install -r execution/requirements.txt
+
+      - name: Unit tests
+        run: python3 -m unittest discover -s execution -v
+
+      - name: "Stage A: research and draft"
+        run: |
+          set -o pipefail
+          mkdir -p drafts
+          claude --print \
+            --allowedTools "Bash" \
+            -- \
+            "Run the atlas-goal-update skill (.claude/skills/atlas-goal-update/SKILL.md) end-to-end for all eight goals. Write one draft JSON per goal into drafts/. Do not post anything." \
+            2>&1 | tee /tmp/stage-a.log
+
+      - name: Assert Stage A produced drafts
+        run: |
+          shopt -s nullglob
+          files=(drafts/*.json)
+          count=${#files[@]}
+          if [ "$count" -eq 0 ]; then
+            echo "::error::Stage A produced 0 draft files in drafts/. Failing here rather than silently later."
+            [ -f /tmp/stage-a.log ] && tail -n 60 /tmp/stage-a.log
+            exit 1
+          fi
+          if [ "$count" -lt 8 ]; then
+            echo "::warning::Stage A produced only $count of 8 expected drafts"
+          fi
+          python3 - "${files[@]}" <<'PY'
+          import json, os, sys
+          bad = 0
+          keys = []
+          for path in sys.argv[1:]:
+              try:
+                  with open(path) as f:
+                      data = json.load(f)
+              except Exception as e:
+                  print(f"::error file={path}::not valid JSON: {e}")
+                  bad += 1
+                  continue
+              key = os.path.splitext(os.path.basename(path))[0]
+              if isinstance(data, dict):
+                  key = data.get("goal_key") or data.get("goal") or key
+              keys.append(str(key))
+          print(f"drafts found ({len(keys)}): {', '.join(sorted(keys))}")
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: "Stage B: post"
+        env:
+          # Only a manual run with dry_run=true is a dry run. A scheduled run is NEVER a dry run.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+        run: |
+          args=()
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "DRY RUN: nothing will be posted"
+            args+=(--dry-run)
+          fi
+          python3 execution/post_goal_updates.py "${args[@]}"
+
+      - name: Upload drafts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drafts
+          path: drafts/
+          retention-days: 14
