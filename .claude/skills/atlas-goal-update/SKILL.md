@@ -1,6 +1,6 @@
 ---
 name: atlas-goal-update
-description: Stage A of the two-stage Atlas goal update pipeline. Researches and drafts a delta update for each of eight Atlas goals (Pages and Partner Network) and writes one drafts/<GOAL_KEY>.json per goal. Reads each goal's current status and last update via the Atlassian MCP, researches Slack, Jira, and Confluence, and drafts what changed since the previous update. Does NOT post anything: a separate Python script (execution/post_goal_updates.py, Stage B) chunks and posts the drafts. Use when drafting Atlas goal updates for the eight XSOLLA goals.
+description: "Stage A of the two-stage Atlas goal update pipeline. Researches and drafts a delta update for each of eight Atlas goals (Pages and Partner Network) and writes one drafts/<GOAL_KEY>.json per goal. Reads each goal's current status and last update via the Atlassian MCP, researches Slack, Jira, and Confluence, and drafts what changed since the previous update. Does NOT post anything: a separate Python script (execution/post_goal_updates.py, Stage B) chunks and posts the drafts. Use when drafting Atlas goal updates for the eight XSOLLA goals."
 ---
 
 # Atlas Goal Update Skill (Stage A: research and draft)
@@ -15,6 +15,14 @@ This is Stage A of a two-stage pipeline.
 - **Stage B (`execution/post_goal_updates.py`): deterministic posting.** It reads the drafts, chunks long bodies into labelled `(1/N)` posts, and posts them to Atlas.
 
 **This skill must never call the GraphQL API, never call `post-atlas-update.sh`, and never write to Atlas.** No `goals_createUpdate`, no `goals_byKey`, no curl to `xsolla.atlassian.net`. If you find yourself about to post, stop: the draft file is the deliverable. Do not create calendar events or send Slack messages either.
+
+## Use subagents for the research
+
+Step 2 research covers eight goals across Slack, Jira and Confluence. Do not do it serially.
+
+- Spawn parallel subagents, grouped by source or by goal cluster, and launch them all in a single message so they run concurrently. Natural groupings: the two Pages goals, the five Partner Network goals (XSOLLA-10661, 8889, 10662, 10663, 10664), and XSOLLA-7370's Confluence sync page.
+- Each agent returns **findings only**. The main session does the drafting (Step 3 onward), so the voice and the delta framing stay consistent across all eight goals.
+- Tell each agent explicitly that it is **read-only**: never post, never write a draft, never call the GraphQL API.
 
 ## Constants
 
