@@ -14,6 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      # Subscription auth (preferred). Generate locally with `claude setup-token`.
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      # API-credit auth (fallback). Leave unset if the org does not allow API credits.
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
       ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
@@ -27,7 +30,15 @@ jobs:
       - name: Preflight secrets
         run: |
           fail=0
-          for v in ANTHROPIC_API_KEY ATLASSIAN_EMAIL ATLASSIAN_API_TOKEN ATLASSIAN_SITE; do
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::no Claude auth configured. Set CLAUDE_CODE_OAUTH_TOKEN (run 'claude setup-token' locally) or ANTHROPIC_API_KEY."
+            fail=1
+          elif [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "Claude auth: subscription OAuth token"
+          else
+            echo "Claude auth: ANTHROPIC_API_KEY (requires API credit balance)"
+          fi
+          for v in ATLASSIAN_EMAIL ATLASSIAN_API_TOKEN ATLASSIAN_SITE; do
             if [ -z "${!v}" ]; then echo "::error::required secret $v is empty"; fail=1; fi
           done
           for v in SLACK_BOT_TOKEN GOOGLE_OAUTH_TOKEN; do
@@ -35,12 +46,48 @@ jobs:
           done
           [ "$fail" -eq 0 ] || exit 1
 
+      - name: Verify Atlassian credentials before burning a run
+        run: |
+          code="$(curl -sS -o /tmp/whoami.json -w '%{http_code}' --max-time 30 \
+            -u "$ATLASSIAN_EMAIL:$ATLASSIAN_API_TOKEN" \
+            "https://$ATLASSIAN_SITE/rest/api/3/myself" || echo 000)"
+          case "$code" in
+            200) echo "Atlassian token OK" ;;
+            401|403) echo "::error::Atlassian auth failed (HTTP $code). TOKEN ROTATION NEEDED."; exit 1 ;;
+            000) echo "::error::could not reach $ATLASSIAN_SITE (network/DNS), not an auth problem"; exit 1 ;;
+            *)   echo "::error::unexpected HTTP $code from $ATLASSIAN_SITE"; exit 1 ;;
+          esac
+
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code
 
       - name: Run xla-pages-atlas-update skill
         run: |
+          set -o pipefail
           claude --print \
             --allowedTools "Bash" \
             -- \
-            "Run the xla-pages-atlas-update skill (.claude/skills/xla-pages-atlas-update/SKILL.md) end-to-end for all five goals."
+            "Run the xla-pages-atlas-update skill (.claude/skills/xla-pages-atlas-update/SKILL.md) end-to-end for all five goals." \
+            2>&1 | tee /tmp/run.log
+
+      - name: Assert updates were actually posted
+        if: always()
+        run: |
+          [ -f /tmp/run.log ] || { echo "::error::skill step produced no log"; exit 1; }
+          posted=$(grep -oE '/updates/[0-9a-f-]{36}' /tmp/run.log | sort -u | wc -l | tr -d ' ')
+          skipped=$(grep -ci 'Skipping ' /tmp/run.log || true)
+          {
+            echo "### XLA Pages Atlas update"
+            echo ""
+            echo "- goal updates posted: **$posted** of 5"
+            echo "- goals skipped by the 3-day duplicate guard: **$skipped**"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$posted" -eq 0 ] && [ "$skipped" -eq 0 ]; then
+            echo "::error::run finished but posted 0 goal updates and skipped none. Treating as a failure, not a no-op."
+            tail -n 60 /tmp/run.log
+            exit 1
+          fi
+          if [ $((posted + skipped)) -lt 5 ]; then
+            echo "::warning::only $posted posted + $skipped skipped, expected 5 goals accounted for"
+          fi
+          echo "posted=$posted skipped=$skipped"
