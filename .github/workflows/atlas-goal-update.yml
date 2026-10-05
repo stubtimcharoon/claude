@@ -73,9 +73,29 @@ jobs:
       - name: Unit tests
         run: python3 -m unittest discover -s execution -v
 
+      - name: Verify Claude auth before researching
+        run: |
+          # When the subscription token is set, drop the API key so the CLI cannot fall
+          # back to it. The old key has no credit, so a fallback shows up as
+          # "Credit balance is too low" and hides the real cause.
+          if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then unset ANTHROPIC_API_KEY; fi
+          out="$(claude --print "Reply with the single word OK." 2>&1)" || true
+          echo "claude said: $(echo "$out" | head -n 5)"
+          case "$out" in
+            *"Credit balance"*)
+              echo "::error::Claude reached an API-credit account with no balance. The subscription token was not used. Regenerate CLAUDE_CODE_OAUTH_TOKEN with 'claude setup-token' and confirm the secret name is exact."
+              exit 1 ;;
+            *"Invalid API key"*|*"Not logged in"*|*"nvalid bearer"*|*"authentication_error"*|*"OAuth token"*)
+              echo "::error::Claude rejected the credential (invalid, expired or revoked). Regenerate CLAUDE_CODE_OAUTH_TOKEN."
+              exit 1 ;;
+          esac
+          echo "$out" | grep -qi "ok" || { echo "::error::Unexpected reply from Claude, see log above."; exit 1; }
+          echo "Claude auth OK"
+
       - name: "Stage A: research and draft"
         run: |
           set -o pipefail
+          if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then unset ANTHROPIC_API_KEY; fi
           mkdir -p drafts
           claude --print \
             --allowedTools "Bash" \
