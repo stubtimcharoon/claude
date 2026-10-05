@@ -1,0 +1,1672 @@
+<title>AFF Capture Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: sticky command bar over a single scrolling column; dense data tables
+   and a kanban that scroll inside their own tracks, never the page sideways. */
+:root {
+  --bg: #f7f7f5;
+  --surface: #fcfcfb;
+  --surface-2: #f0f0ed;
+  --surface-3: #e6e6e1;
+  --border: #dcdcd5;
+  --border-2: #c6c6be;
+  --ink: #15171a;
+  --ink-2: #4e5257;
+  --ink-3: #797d83;
+  --accent: #2a78d6;
+  --accent-ink: #1c5cab;
+
+  /* Ordinal tier ramp: one hue, light to dark. Lightest step stays at or above
+     blue-250 so it clears 2:1 on this surface. */
+  --t-p0: #184f95;
+  --t-p1: #2a78d6;
+  --t-p2: #86b6ef;
+  --t-out: #a8a7a0;
+
+  /* Status palette, fixed, never themed. Always paired with an icon or label. */
+  --good: #0ca30c;
+  --warn: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+
+  --grid: #e6e6e1;
+  --shadow: 0 1px 2px rgba(20,22,26,.06), 0 4px 12px rgba(20,22,26,.04);
+
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121311;
+    --surface: #1a1a19;
+    --surface-2: #232422;
+    --surface-3: #2d2e2b;
+    --border: #35362f;
+    --border-2: #4a4b43;
+    --ink: #f4f4f0;
+    --ink-2: #b9b9ae;
+    --ink-3: #8b8b81;
+    --accent: #3987e5;
+    --accent-ink: #86b6ef;
+    --t-p0: #9ec5f4;
+    --t-p1: #3987e5;
+    --t-p2: #184f95;
+    --t-out: #55544e;
+    --grid: #2d2e2b;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121311;
+  --surface: #1a1a19;
+  --surface-2: #232422;
+  --surface-3: #2d2e2b;
+  --border: #35362f;
+  --border-2: #4a4b43;
+  --ink: #f4f4f0;
+  --ink-2: #b9b9ae;
+  --ink-3: #8b8b81;
+  --accent: #3987e5;
+  --accent-ink: #86b6ef;
+  --t-p0: #9ec5f4;
+  --t-p1: #3987e5;
+  --t-p2: #184f95;
+  --t-out: #55544e;
+  --grid: #2d2e2b;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ---------- command bar ---------- */
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.bar-in { max-width: 1480px; margin: 0 auto; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.brand { display: flex; align-items: baseline; gap: 9px; min-width: 0; }
+.brand h1 { font-size: 15px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+.brand .sub { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.spacer { flex: 1 1 auto; }
+
+.tabs { display: flex; gap: 2px; background: var(--surface-2); padding: 3px; border-radius: 8px; }
+.tabs button {
+  font: 500 12.5px/1 var(--f-body); color: var(--ink-2);
+  background: none; border: 0; padding: 7px 12px; border-radius: 6px; cursor: pointer;
+}
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+.gate { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.gate-lab { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-3); font-weight: 600; }
+.seg { display: flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; }
+.seg button {
+  font: 500 12px/1 var(--f-body); color: var(--ink-2); background: var(--surface);
+  border: 0; border-right: 1px solid var(--border); padding: 7px 10px; cursor: pointer; white-space: nowrap;
+}
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.thr { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.thr input {
+  width: 92px; font: 500 12px/1 var(--f-mono); padding: 7px 8px;
+  border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--ink);
+}
+.pill-count { font: 600 11.5px/1 var(--f-mono); background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-2); padding: 6px 9px; border-radius: 999px; white-space: nowrap; }
+.icon-btn {
+  background: var(--surface); border: 1px solid var(--border); color: var(--ink-2);
+  width: 32px; height: 32px; border-radius: 7px; cursor: pointer; font-size: 14px; line-height: 1;
+  display: grid; place-items: center;
+}
+
+/* ---------- page shell ---------- */
+.wrap { max-width: 1480px; margin: 0 auto; padding-block: 18px 64px; padding-left: 16px; padding-right: 16px; }
+.view[hidden] { display: none !important; }
+.sec { margin-bottom: 22px; }
+.sec-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.sec-head h2 { font-size: 13px; font-weight: 600; letter-spacing: -.005em; }
+.sec-head .note { font-size: 11.5px; color: var(--ink-3); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.pad { padding: 14px; }
+
+/* ---------- funnel tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
+.tile {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 11px 12px; min-width: 0; cursor: pointer; text-align: left; font: inherit; color: inherit;
+  position: relative; overflow: hidden;
+}
+.tile:hover { border-color: var(--border-2); }
+.tile[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.tile .stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
+.tile .k { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .v { display: block; font: 600 24px/1.1 var(--f-mono); letter-spacing: -.02em; margin-top: 5px; }
+.tile .m { display: block; font-size: 11px; color: var(--ink-3); margin-top: 3px; }
+.tile .m b { font-family: var(--f-mono); font-weight: 600; color: var(--ink-2); }
+
+/* ---------- generic chart frame ---------- */
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; }
+.chart-t { font: 600 12.5px/1.2 var(--f-display); margin-bottom: 2px; }
+.chart-s { font-size: 11px; color: var(--ink-3); margin-bottom: 10px; }
+svg { display: block; max-width: 100%; overflow: visible; }
+.ax { font: 500 10.5px var(--f-mono); fill: var(--ink-3); }
+.lab { font: 500 11px var(--f-body); fill: var(--ink-2); }
+.val { font: 600 11px var(--f-mono); fill: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink-2); }
+.legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+
+/* ---------- tier strip ---------- */
+.tierrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.tiercard { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 11px 12px; position: relative; overflow: hidden; }
+.tiercard .stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+.tiercard .k { font: 700 12px/1 var(--f-display); letter-spacing: .02em; }
+.tiercard .n { font: 600 20px/1.1 var(--f-mono); margin-top: 6px; }
+.tiercard .d { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+.tiercard .d b { font-family: var(--f-mono); color: var(--ink-2); font-weight: 600; }
+
+/* ---------- table ---------- */
+.tscroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1060px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+thead th {
+  position: sticky; top: 0; z-index: 2; background: var(--surface-2);
+  font: 600 10.5px/1.2 var(--f-body); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3);
+  white-space: nowrap; cursor: pointer; user-select: none;
+}
+thead th.r, td.r { text-align: right; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--surface-2); }
+tbody tr[data-cur="1"] { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+tbody tr[data-cur="1"] td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+td .ttl { font-weight: 600; display: block; max-width: 290px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td .co { font-size: 11px; color: var(--ink-3); display: block; max-width: 290px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td.num, th.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-flex; align-items: center; gap: 4px; font: 600 10px/1 var(--f-body); padding: 3px 6px; border-radius: 4px; white-space: nowrap; }
+.chip.hard { background: color-mix(in srgb, var(--critical) 16%, var(--surface)); color: var(--critical); }
+.chip.soft { background: color-mix(in srgb, var(--serious) 20%, var(--surface)); color: var(--ink-2); }
+.chip.info { background: var(--surface-3); color: var(--ink-2); }
+.chip.good { background: color-mix(in srgb, var(--good) 15%, var(--surface)); color: var(--good); }
+
+.tbadge { display: inline-block; font: 700 10.5px/1 var(--f-mono); padding: 4px 7px; border-radius: 4px; color: #fff; }
+.tbadge.manual::after { content: "\00a0\25CF"; font-size: 8px; vertical-align: middle; }
+.stagepill { display: inline-block; font: 600 10.5px/1 var(--f-body); padding: 4px 7px; border-radius: 999px; background: var(--surface-3); color: var(--ink-2); white-space: nowrap; }
+
+.tierbtns { display: inline-flex; gap: 3px; }
+.tierbtns button {
+  font: 700 10.5px/1 var(--f-mono); border: 1px solid var(--border); background: var(--surface);
+  color: var(--ink-2); padding: 4px 6px; border-radius: 4px; cursor: pointer;
+}
+.tierbtns button:hover { border-color: var(--border-2); color: var(--ink); }
+.tierbtns button[aria-pressed="true"] { color: #fff; border-color: transparent; }
+
+/* ---------- kanban ---------- */
+.board { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; align-items: flex-start; }
+.col { flex: 0 0 236px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; max-height: 70vh; }
+.col.over { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.col-h { padding: 9px 11px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 7px; }
+.col-h .nm { font: 600 11.5px/1 var(--f-body); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-h .ct { font: 600 11px/1 var(--f-mono); color: var(--ink-3); }
+.col-b { padding: 8px; display: flex; flex-direction: column; gap: 7px; overflow-y: auto; min-height: 56px; }
+.lcard { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 9px; cursor: grab; }
+.lcard:hover { border-color: var(--border-2); }
+.lcard .lt { font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lcard .lc { font-size: 10.5px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+.lcard .lr { font: 600 11.5px/1 var(--f-mono); margin-top: 6px; }
+.lcard .lm { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 7px; }
+.lcard.dragging { opacity: .45; }
+
+/* ---------- drawer ---------- */
+.scrim { position: fixed; inset: 0; background: rgba(10,11,12,.44); z-index: 60; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(640px, 100%);
+  background: var(--surface); border-left: 1px solid var(--border); z-index: 61;
+  display: flex; flex-direction: column; box-shadow: -8px 0 32px rgba(0,0,0,.18);
+}
+.dh { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start; }
+.dh h3 { font-size: 15px; font-weight: 700; }
+.dh .dsub { font-size: 11.5px; color: var(--ink-3); margin-top: 3px; }
+.db { overflow-y: auto; padding: 14px 16px calc(28px + env(safe-area-inset-bottom, 0px)); flex: 1; }
+.grp { margin-bottom: 18px; }
+.grp h4 { font: 600 10.5px/1 var(--f-body); text-transform: uppercase; letter-spacing: .07em; color: var(--ink-3); margin: 0 0 8px; }
+.kv { display: grid; grid-template-columns: minmax(0,150px) minmax(0,1fr); gap: 5px 12px; font-size: 12.5px; }
+.kv dt { color: var(--ink-3); min-width: 0; overflow-wrap: anywhere; }
+.kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.kv dd.num { font-family: var(--f-mono); }
+textarea, select, input[type="text"] {
+  width: 100%; font: 400 12.5px/1.4 var(--f-body); padding: 8px 9px;
+  border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--ink); resize: vertical;
+}
+select { font-family: var(--f-body); }
+.btn {
+  font: 600 12px/1 var(--f-body); padding: 8px 12px; border-radius: 7px; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border); color: var(--ink);
+}
+.btn:hover { border-color: var(--border-2); }
+.btn.pri { background: var(--accent); border-color: transparent; color: #fff; }
+.btn.danger { color: var(--critical); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ---------- banners, toast, skeleton ---------- */
+.banner { border: 1px solid var(--border); border-left: 3px solid var(--warn); background: var(--surface); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--ink-2); margin-bottom: 14px; }
+.banner b { color: var(--ink); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(22px + env(safe-area-inset-bottom, 0px)); z-index: 80; background: var(--ink); color: var(--bg); font: 500 12.5px/1 var(--f-body); padding: 11px 16px; border-radius: 999px; box-shadow: var(--shadow); }
+.sk { background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 37%, var(--surface-2) 63%); background-size: 400% 100%; animation: sh 1.4s linear infinite; border-radius: 6px; }
+@keyframes sh { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+.empty { text-align: center; padding: 40px 18px; color: var(--ink-3); font-size: 12.5px; }
+.empty b { display: block; color: var(--ink); font: 600 14px/1.3 var(--f-display); margin-bottom: 5px; }
+
+.tip {
+  position: fixed; z-index: 90; pointer-events: none; background: var(--ink); color: var(--bg);
+  font: 500 11.5px/1.4 var(--f-body); padding: 7px 9px; border-radius: 6px; max-width: 260px; box-shadow: var(--shadow);
+}
+.tip .tn { font-weight: 700; display: block; }
+.tip .tm { font-family: var(--f-mono); }
+
+@media (max-width: 720px) {
+  .bar-in { padding: 9px 16px; gap: 8px; }
+  .brand .sub { display: none; }
+  .tile .v { font-size: 20px; }
+  table { min-width: 860px; }
+  .kv { grid-template-columns: 1fr; gap: 1px 0; }
+  .kv dt { margin-top: 7px; }
+}
+</style>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="brand">
+      <h1>AFF Capture Pipeline</h1>
+      <span class="sub">GET-864 &middot; 90d to 26 Aug 2026</span>
+    </div>
+    <div class="tabs" role="tablist" id="tabs">
+      <button role="tab" id="tab-dash" aria-selected="true" aria-controls="v-dash">Dashboard</button>
+      <button role="tab" id="tab-screen" aria-selected="false" aria-controls="v-screen">Screening</button>
+      <button role="tab" id="tab-board" aria-selected="false" aria-controls="v-board">Pipeline</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="gate">
+      <span class="gate-lab">Lead gate</span>
+      <div class="seg" id="gateseg">
+        <button data-gate="webshop100k" aria-pressed="true">Web shop &ge; $100k/mo</button>
+        <button data-gate="underperformer" aria-pressed="false">Underperformer upside</button>
+        <button data-gate="all" aria-pressed="false">All 541</button>
+      </div>
+      <label class="thr" id="thrwrap">
+        <span id="thrlabel">WS $/mo</span>
+        <input type="text" id="thr" inputmode="numeric" value="100000" aria-label="Gate threshold in dollars per month">
+      </label>
+      <span class="pill-count" id="leadcount">loading</span>
+    </div>
+    <button class="icon-btn" id="themebtn" title="Toggle light and dark" aria-label="Toggle light and dark"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.25" stroke="currentColor" stroke-width="1.5"/><path d="M8 2.75A5.25 5.25 0 0 1 8 13.25z" fill="currentColor"/></svg></button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="boot">
+    <div class="sec">
+      <div class="tiles">
+        <div class="tile"><div class="sk" style="height:11px;width:62%"></div><div class="sk" style="height:24px;width:48%;margin-top:9px"></div></div>
+        <div class="tile"><div class="sk" style="height:11px;width:54%"></div><div class="sk" style="height:24px;width:40%;margin-top:9px"></div></div>
+        <div class="tile"><div class="sk" style="height:11px;width:68%"></div><div class="sk" style="height:24px;width:44%;margin-top:9px"></div></div>
+        <div class="tile"><div class="sk" style="height:11px;width:50%"></div><div class="sk" style="height:24px;width:52%;margin-top:9px"></div></div>
+        <div class="tile"><div class="sk" style="height:11px;width:60%"></div><div class="sk" style="height:24px;width:38%;margin-top:9px"></div></div>
+      </div>
+    </div>
+    <div class="empty">
+      <b>Loading 541 web shops</b>
+      Reading the GET-864 capture-rate research, then scoring recoverable revenue per shop.
+    </div>
+  </div>
+
+  <div class="view" id="v-dash" role="tabpanel" aria-labelledby="tab-dash" hidden>
+    <div id="dash-banner"></div>
+
+    <div class="sec">
+      <div class="sec-head">
+        <h2>Funnel</h2>
+        <span class="note">Large number is how many ever reached the stage. Small number is how many sit there now. Click a stage to filter Screening.</span>
+      </div>
+      <div class="tiles" id="tiles"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head">
+        <h2>Priority</h2>
+        <span class="note" id="tier-note"></span>
+      </div>
+      <div class="tierrow" id="tierrow"></div>
+    </div>
+
+    <div class="sec charts">
+      <div class="card pad">
+        <div class="chart-t">Where the recoverable money sits</div>
+        <div class="chart-s">Each shop plotted by current capture rate against its total monthly sales. Dot area is recoverable revenue per month.</div>
+        <div id="scatter"></div>
+        <div class="legend" id="scatter-legend"></div>
+      </div>
+      <div class="card pad">
+        <div class="chart-t">Stage conversion</div>
+        <div class="chart-s">Leads that ever reached each stage, and the step-to-step conversion between them.</div>
+        <div id="funnelchart"></div>
+      </div>
+      <div class="card pad">
+        <div class="chart-t">Recoverable by owner</div>
+        <div class="chart-s">Monthly revenue at stake across each BD/CSM's gated leads in P0 to P2.</div>
+        <div id="owners"></div>
+      </div>
+      <div class="card pad">
+        <div class="chart-t">Capture rate distribution</div>
+        <div class="chart-s">Gated leads by current capture rate. The 40% benchmark is the Top-40 observed floor.</div>
+        <div id="hist"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="view" id="v-screen" role="tabpanel" aria-labelledby="tab-screen" hidden>
+    <div class="sec">
+      <div class="sec-head">
+        <h2>Screening queue</h2>
+        <span class="note" id="screen-note"></span>
+      </div>
+      <div class="row" style="margin-bottom:10px">
+        <input type="text" id="q" placeholder="Search game, company or owner" style="max-width:260px" aria-label="Search leads">
+        <select id="f-tier" style="width:auto" aria-label="Filter by priority"><option value="">All priorities</option><option>P0</option><option>P1</option><option>P2</option><option>OUT</option><option value="__un">Untriaged only</option></select>
+        <select id="f-stage" style="width:auto" aria-label="Filter by stage"></select>
+        <select id="f-owner" style="width:auto" aria-label="Filter by owner"></select>
+        <button class="btn" id="aibtn">Ask AI to batch move</button>
+        <span class="spacer"></span>
+        <span class="pill-count" id="rowcount"></span>
+      </div>
+      <div id="aipanel" hidden></div>
+      <div class="banner" style="border-left-color:var(--accent)">
+        <b>Keyboard:</b> <span class="num">1</span> P0 &middot; <span class="num">2</span> P1 &middot; <span class="num">3</span> P2 &middot; <span class="num">0</span> Out &middot; <span class="num">j</span>/<span class="num">k</span> move &middot; <span class="num">Enter</span> open &middot; <span class="num">]</span> advance stage
+      </div>
+      <div class="tscroll"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+      <div id="screen-empty"></div>
+    </div>
+  </div>
+
+  <div class="view" id="v-board" role="tabpanel" aria-labelledby="tab-board" hidden>
+    <div class="sec">
+      <div class="sec-head">
+        <h2>Pipeline</h2>
+        <span class="note">Drag a card, or open it and pick a stage. Columns show lead count and recoverable per month.</span>
+      </div>
+      <div class="row" style="margin-bottom:10px">
+        <select id="b-tier" style="width:auto" aria-label="Filter board by priority"><option value="">All priorities</option><option>P0</option><option>P1</option><option>P2</option><option>OUT</option></select>
+        <select id="b-owner" style="width:auto" aria-label="Filter board by owner"></select>
+      </div>
+      <div class="board" id="board"></div>
+    </div>
+  </div>
+</div>
+
+<div id="drawer-host"></div>
+<div id="toast-host"></div>
+<div id="tip-host"></div>
+
+<script>
+(function () {
+"use strict";
+
+/* ===================== constants ===================== */
+
+var STAGES = [
+  { k: "lead",      n: "Total leads",  short: "Lead" },
+  { k: "qualified", n: "Qualified",    short: "Qualified" },
+  { k: "emailed",   n: "Emailed",      short: "Emailed" },
+  { k: "responded", n: "Responded",    short: "Responded" },
+  { k: "meet",      n: "Meet",         short: "Meet" },
+  { k: "sign",      n: "Sign",         short: "Sign" },
+  { k: "integrate", n: "Integrate",    short: "Integrate" },
+  { k: "won",       n: "Closed Won",   short: "Won", terminal: true },
+  { k: "lost",      n: "Closed Lost",  short: "Lost", terminal: true }
+];
+var LINEAR = STAGES.filter(function (s) { return !s.terminal; }).map(function (s) { return s.k; });
+var STAGE_BY_KEY = {};
+STAGES.forEach(function (s, i) { STAGE_BY_KEY[s.k] = s; s.i = i; });
+
+var TIERS = ["P0", "P1", "P2", "OUT"];
+var TIER_LABEL = { P0: "P0", P1: "P1", P2: "P2", OUT: "Out" };
+function tierColor(t) {
+  return t === "P0" ? "var(--t-p0)" : t === "P1" ? "var(--t-p1)" : t === "P2" ? "var(--t-p2)" : "var(--t-out)";
+}
+function stageColor(k) {
+  if (k === "won") return "var(--good)";
+  if (k === "lost") return "var(--critical)";
+  return "var(--accent)";
+}
+
+/* ===================== state ===================== */
+
+var S = {
+  meta: null,
+  leads: [],
+  byId: {},
+  state: {},          /* leadId -> db doc data */
+  gate: "webshop100k",
+  threshold: 100000,
+  stageFilter: "",
+  q: "",
+  fTier: "",
+  fStage: "",
+  fOwner: "",
+  bTier: "",
+  bOwner: "",
+  sort: { key: "recoverable", dir: "desc" },
+  cursor: 0,
+  view: "dash",
+  db: null,
+  user: null,
+  sample: null,
+  canWrite: null,     /* null = not told yet */
+  me: null,
+  openId: null
+};
+
+/* ===================== formatting ===================== */
+
+function fmtMoney(v) {
+  if (v === null || v === undefined || isNaN(v)) return "--";
+  var a = Math.abs(v);
+  if (a >= 1e9) return "$" + (v / 1e9).toFixed(1) + "B";
+  if (a >= 1e6) return "$" + (v / 1e6).toFixed(a >= 1e7 ? 0 : 1) + "M";
+  if (a >= 1e3) return "$" + Math.round(v / 1e3) + "k";
+  return "$" + Math.round(v).toLocaleString("en-US");
+}
+function fmtFull(v) {
+  if (v === null || v === undefined || isNaN(v)) return "--";
+  return "$" + Math.round(v).toLocaleString("en-US");
+}
+function fmtPct(v, dp) {
+  if (v === null || v === undefined || isNaN(v)) return "--";
+  return (v * 100).toFixed(dp === undefined ? 2 : dp) + "%";
+}
+function fmtInt(v) {
+  if (v === null || v === undefined || isNaN(v)) return "--";
+  return Math.round(v).toLocaleString("en-US");
+}
+function esc(s) {
+  return String(s === null || s === undefined ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+function el(id) { return document.getElementById(id); }
+
+/* ===================== derived ===================== */
+
+function st(id) { return S.state[id] || null; }
+
+function tierOf(l) {
+  var s = st(l.id);
+  if (s && s.priority) return s.priority;
+  return l.tier;
+}
+function tierIsManual(l) {
+  var s = st(l.id);
+  return !!(s && s.priority && s.priority_source === "manual");
+}
+function stageOf(l) {
+  var s = st(l.id);
+  return (s && s.stage) || "lead";
+}
+function reachedOf(l) {
+  var s = st(l.id);
+  if (s && s.reached) return s.reached;
+  return { lead: true };
+}
+function ownerOf(l) {
+  var s = st(l.id);
+  return (s && s.owner_override) || l.owner || null;
+}
+function isTriaged(l) {
+  var s = st(l.id);
+  return !!(s && s.priority);
+}
+
+/* Does this lead pass the active gate? */
+function gated(l) {
+  if (S.gate === "all") return true;
+  if (!l.live) return false;
+  if (S.gate === "webshop100k") return (l.ws_sales_month || 0) >= S.threshold;
+  if (S.gate === "underperformer") {
+    if (l.capture_90d === undefined || l.capture_90d === null) return false;
+    return (l.mobile_sales_month || 0) >= S.threshold && l.capture_90d < 0.05;
+  }
+  return true;
+}
+function leadsGated() { return S.leads.filter(gated); }
+
+function recov(l) { return l.recoverable || 0; }
+
+/* ===================== toast ===================== */
+
+var toastT = null;
+function toast(msg) {
+  var h = el("toast-host");
+  h.innerHTML = '<div class="toast">' + esc(msg) + "</div>";
+  if (toastT) clearTimeout(toastT);
+  toastT = setTimeout(function () { h.innerHTML = ""; }, 2800);
+}
+
+/* ===================== persistence ===================== */
+
+/* Every change funnels through here so the activity log never misses a move. */
+function writeLead(id, patch, source) {
+  var lead = S.byId[id];
+  if (!lead) return Promise.resolve();
+  var before = Object.assign({}, st(id) || {});
+  var next = Object.assign({}, before, patch);
+
+  if (patch.stage) {
+    var reached = Object.assign({}, before.reached || { lead: true });
+    var idx = LINEAR.indexOf(patch.stage);
+    if (idx >= 0) {
+      /* Backfill earlier linear stages so the funnel stays monotonic and the
+         step-to-step conversion means something. */
+      for (var i = 0; i <= idx; i++) reached[LINEAR[i]] = true;
+    } else {
+      reached.lead = true;
+      reached[patch.stage] = true;
+    }
+    next.reached = reached;
+  }
+  next.updated_at = new Date().toISOString();
+  if (S.me) next.updated_by = S.me;
+
+  S.state[id] = next;
+  render();
+
+  if (!S.db || S.canWrite === false) return Promise.resolve();
+
+  var writes = [S.db.doc("leads/" + id).set(next)];
+  var changed = Object.keys(patch);
+  for (var j = 0; j < changed.length; j++) {
+    var f = changed[j];
+    writes.push(S.db.collection("activity").add({
+      leadId: id,
+      title: lead.title,
+      field: f,
+      from: before[f] === undefined ? null : before[f],
+      to: patch[f],
+      actor: S.me || null,
+      source: source || "manual",
+      ts: new Date().toISOString()
+    }));
+  }
+  return Promise.all(writes)["catch"](function (e) {
+    toast("Could not save: " + ((e && e.message) || "unknown error"));
+  });
+}
+
+function setTier(id, tier) {
+  var lead = S.byId[id];
+  if (!lead) return;
+  if (tier === null) {
+    writeLead(id, { priority: null, priority_source: null, priority_reason: null }, "manual");
+    return;
+  }
+  writeLead(id, {
+    priority: tier,
+    priority_source: "manual",
+    priority_reason: "set by hand, formula said " + lead.tier
+  }, "manual");
+}
+function setStage(id, stage) { writeLead(id, { stage: stage }, "manual"); }
+
+function advanceStage(id) {
+  var cur = stageOf(S.byId[id]);
+  var i = LINEAR.indexOf(cur);
+  if (i >= 0 && i < LINEAR.length - 1) setStage(id, LINEAR[i + 1]);
+  else if (i === LINEAR.length - 1) setStage(id, "won");
+}
+
+/* ===================== capability wiring ===================== */
+
+function connect() {
+  if (!window.claude || !window.claude.use) { afterConnect(); return; }
+
+  var jobs = [
+    window.claude.use("db")["catch"](function () { return null; }),
+    window.claude.use("user")["catch"](function () { return null; }),
+    window.claude.use("sample")["catch"](function () { return null; })
+  ];
+  Promise.all(jobs).then(function (r) {
+    S.db = r[0]; S.user = r[1]; S.sample = r[2];
+
+    var pre = [];
+    if (S.user) {
+      pre.push(Promise.resolve(S.user.id()).then(function (v) { S.me = v; })["catch"](function () {}));
+      pre.push(Promise.resolve(S.user.can("data.write")).then(function (v) { S.canWrite = v; })["catch"](function () {}));
+    }
+    return Promise.all(pre);
+  }).then(function () {
+    if (S.db) {
+      S.db.collection("leads").onSnapshot(function (snap) {
+        snap.docs.forEach(function (d) {
+          var data = d.data();
+          if (data) S.state[d.id] = data;
+        });
+        snap.docChanges().forEach(function (c) {
+          if (c.type === "removed") delete S.state[c.doc.id];
+        });
+        render();
+      }, function () { /* read error: keep the formula view */ });
+    }
+    afterConnect();
+  })["catch"](afterConnect);
+}
+
+function afterConnect() { render(); }
+
+/* ===================== boot ===================== */
+
+function boot() {
+  fetch("data/leads.json").then(function (r) {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }).then(function (d) {
+    S.meta = d.meta;
+    S.leads = d.leads;
+    S.leads.forEach(function (l) { S.byId[l.id] = l; });
+    el("boot").hidden = true;
+    buildFilters();
+    render();
+    connect();
+  })["catch"](function (e) {
+    el("boot").innerHTML =
+      '<div class="empty"><b>Could not load the lead data</b>' +
+      esc((e && e.message) || "unknown error") +
+      ". The page needs data/leads.json published alongside it.</div>";
+  });
+}
+
+/* ===================== tooltip ===================== */
+
+function tipShow(html, ev) {
+  var h = el("tip-host");
+  h.innerHTML = '<div class="tip" id="tipbox">' + html + "</div>";
+  var b = el("tipbox");
+  var pad = 12, w = b.offsetWidth, ht = b.offsetHeight;
+  var x = ev.clientX + pad, y = ev.clientY + pad;
+  if (x + w > window.innerWidth - 8) x = ev.clientX - w - pad;
+  if (y + ht > window.innerHeight - 8) y = ev.clientY - ht - pad;
+  b.style.left = Math.max(8, x) + "px";
+  b.style.top = Math.max(8, y) + "px";
+}
+function tipHide() { el("tip-host").innerHTML = ""; }
+
+function wireTips(root) {
+  var marks = root.querySelectorAll("[data-tip]");
+  for (var i = 0; i < marks.length; i++) {
+    (function (m) {
+      m.addEventListener("mousemove", function (ev) { tipShow(m.getAttribute("data-tip"), ev); });
+      m.addEventListener("mouseleave", tipHide);
+    })(marks[i]);
+  }
+}
+
+/* ===================== dashboard ===================== */
+
+function renderBanner() {
+  var g = S.meta.gates[S.gate];
+  var bits = [];
+  if (S.gate === "all") {
+    bits.push("<b>Showing all 541 rows</b>, gate off. Tier counts include shops with no valid capture rate.");
+  } else if (S.gate === "webshop100k") {
+    var gl = leadsGated();
+    var fromBottom = gl.filter(function (l) { return l.list === "Underperformer"; }).length;
+    bits.push("<b>" + gl.length + " leads</b> at Xsolla web shop sales of " + fmtMoney(S.threshold) +
+      "/month or more. This gate selects shops whose web shop already converts, so only <b>" + fromBottom +
+      "</b> of the 40 Bottom-40 underperformers clear it. The money the research flagged sits mostly outside this gate. " +
+      'Switch to <b>Underperformer upside</b> to see it.');
+  } else {
+    bits.push("<b>" + leadsGated().length + " leads</b> at mobile store sales of " + fmtMoney(S.threshold) +
+      "/month or more with capture below 5%. This is the Bottom-40 logic, widened to the whole file.");
+  }
+  if (S.db === null && window.claude) {
+    bits.push("Pipeline changes are not being saved: the shared store is unavailable in this view.");
+  } else if (S.canWrite === false) {
+    bits.push("You have read-only access, so stage and priority edits will not save.");
+  }
+  el("dash-banner").innerHTML = '<div class="banner">' + bits.join(" ") + "</div>";
+}
+
+function renderTiles() {
+  var gl = leadsGated();
+  var reach = {}, cur = {};
+  STAGES.forEach(function (s) { reach[s.k] = 0; cur[s.k] = 0; });
+  gl.forEach(function (l) {
+    var r = reachedOf(l), s = stageOf(l);
+    STAGES.forEach(function (st2) { if (r[st2.k]) reach[st2.k]++; });
+    cur[s] = (cur[s] || 0) + 1;
+  });
+  reach.lead = gl.length;
+
+  var html = STAGES.map(function (s, i) {
+    var prev = i > 0 && !s.terminal ? reach[STAGES[i - 1].k] : null;
+    var conv = prev ? (prev > 0 ? Math.round((reach[s.k] / prev) * 100) + "% of prev" : "") : "";
+    var money = gl.filter(function (l) { return reachedOf(l)[s.k]; })
+                  .reduce(function (a, l) { return a + recov(l); }, 0);
+    return '<button class="tile" data-stagetile="' + s.k + '" aria-pressed="' +
+      (S.stageFilter === s.k ? "true" : "false") + '">' +
+      '<span class="stripe" style="background:' + stageColor(s.k) + '"></span>' +
+      '<span class="k">' + esc(s.n) + "</span>" +
+      '<span class="v">' + fmtInt(reach[s.k]) + "</span>" +
+      '<span class="m"><b>' + fmtInt(cur[s.k]) + "</b> here now" +
+      (conv ? " &middot; " + conv : "") + "<br>" + fmtMoney(money) + "/mo at stake</span>" +
+      "</button>";
+  }).join("");
+  el("tiles").innerHTML = html;
+}
+
+function renderTierRow() {
+  var gl = leadsGated();
+  var untr = gl.filter(function (l) { return !isTriaged(l); }).length;
+  el("tier-note").innerHTML = "Formula tiers from recoverable revenue per month. " +
+    "<b>" + untr + "</b> of " + gl.length + " still carry the formula's call rather than yours. " +
+    "Benchmark capture " + fmtPct(S.meta.benchmark, 0) + ", the Top-40 observed floor.";
+
+  var html = TIERS.map(function (t) {
+    var rows = gl.filter(function (l) { return tierOf(l) === t; });
+    var money = rows.reduce(function (a, l) { return a + recov(l); }, 0);
+    var manual = rows.filter(tierIsManual).length;
+    return '<div class="tiercard">' +
+      '<span class="stripe" style="background:' + tierColor(t) + '"></span>' +
+      '<div class="k">' + TIER_LABEL[t] + "</div>" +
+      '<div class="n">' + rows.length + "</div>" +
+      '<div class="d"><b>' + fmtMoney(money) + "</b>/mo recoverable" +
+      (manual ? "<br>" + manual + " set by hand" : "") + "</div></div>";
+  }).join("");
+  el("tierrow").innerHTML = html;
+}
+
+/* ---------- charts ---------- */
+
+function cw(node, fallback) {
+  var w = node.clientWidth || node.parentNode.clientWidth || fallback;
+  return Math.max(260, w);
+}
+
+function renderScatter() {
+  var host = el("scatter");
+  var gl = leadsGated().filter(function (l) {
+    return l.capture_90d !== undefined && l.capture_90d !== null && (l.total_sales_month || 0) > 0;
+  });
+  if (!gl.length) { host.innerHTML = '<div class="empty">No gated shop has both a capture rate and sales.</div>'; el("scatter-legend").innerHTML = ""; return; }
+
+  var W = cw(host, 420), H = 260;
+  var m = { t: 24, r: 14, b: 34, l: 54 };
+  var iw = W - m.l - m.r, ih = H - m.t - m.b;
+
+  var maxCap = Math.max(0.45, Math.max.apply(null, gl.map(function (l) { return l.capture_90d; })));
+  var ys = gl.map(function (l) { return l.total_sales_month; });
+  var yMin = Math.max(1000, Math.min.apply(null, ys));
+  var yMax = Math.max.apply(null, ys);
+  var lo = Math.log10(yMin), hi = Math.log10(yMax) || 1;
+  var maxRec = Math.max.apply(null, gl.map(recov)) || 1;
+
+  function X(c) { return m.l + (c / maxCap) * iw; }
+  function Y(v) { return m.t + ih - ((Math.log10(Math.max(v, yMin)) - lo) / Math.max(hi - lo, .0001)) * ih; }
+  function R(r) { return 3 + Math.sqrt(Math.max(r, 0) / maxRec) * 9; }
+
+  var s = ['<svg width="' + W + '" height="' + H + '" role="img" aria-label="Capture rate against total monthly sales for each gated web shop">'];
+
+  /* y gridlines at decade steps */
+  var d0 = Math.ceil(lo), d1 = Math.floor(hi);
+  for (var d = d0; d <= d1; d++) {
+    var yy = Y(Math.pow(10, d));
+    s.push('<line x1="' + m.l + '" y1="' + yy.toFixed(1) + '" x2="' + (W - m.r) + '" y2="' + yy.toFixed(1) + '" stroke="var(--grid)" stroke-width="1"/>');
+    s.push('<text class="ax" x="' + (m.l - 7) + '" y="' + (yy + 3.5).toFixed(1) + '" text-anchor="end">' + fmtMoney(Math.pow(10, d)) + "</text>");
+  }
+  /* x ticks */
+  for (var c = 0; c <= maxCap + .0001; c += .1) {
+    var xx = X(c);
+    s.push('<line x1="' + xx.toFixed(1) + '" y1="' + m.t + '" x2="' + xx.toFixed(1) + '" y2="' + (m.t + ih) + '" stroke="var(--grid)" stroke-width="1"/>');
+    s.push('<text class="ax" x="' + xx.toFixed(1) + '" y="' + (m.t + ih + 15) + '" text-anchor="middle">' + Math.round(c * 100) + "%</text>");
+  }
+  /* benchmark */
+  var bx = X(S.meta.benchmark);
+  s.push('<line x1="' + bx.toFixed(1) + '" y1="' + m.t + '" x2="' + bx.toFixed(1) + '" y2="' + (m.t + ih) + '" stroke="var(--ink-3)" stroke-width="1"/>');
+  s.push('<text class="ax" x="' + bx.toFixed(1) + '" y="' + (m.t - 9) + '" text-anchor="middle">' + fmtPct(S.meta.benchmark, 0) + " target</text>");
+  s.push('<text class="ax" x="' + (m.l + iw / 2) + '" y="' + (m.t + ih + 29) + '" text-anchor="middle">Capture rate, 90d</text>');
+
+  /* biggest dots last so they do not hide the small ones */
+  gl.slice().sort(function (a, b) { return recov(a) - recov(b); }).forEach(function (l) {
+    var t = tierOf(l);
+    s.push('<circle cx="' + X(l.capture_90d).toFixed(1) + '" cy="' + Y(l.total_sales_month).toFixed(1) +
+      '" r="' + R(recov(l)).toFixed(1) + '" fill="' + tierColor(t) + '" fill-opacity=".82" stroke="var(--surface)" stroke-width="2" ' +
+      'data-tip="' + esc('<span class="tn">' + l.title + "</span>" + (ownerOf(l) ? esc(ownerOf(l)) + " &middot; " : "") +
+        TIER_LABEL[t] + '<br><span class="tm">' + fmtPct(l.capture_90d) + " capture &middot; " +
+        fmtMoney(l.total_sales_month) + "/mo total<br>" + fmtMoney(recov(l)) + "/mo recoverable</span>") + '"/>');
+  });
+  s.push("</svg>");
+  host.innerHTML = s.join("");
+  wireTips(host);
+
+  el("scatter-legend").innerHTML = TIERS.map(function (t) {
+    return '<span><i style="background:' + tierColor(t) + '"></i>' + TIER_LABEL[t] + "</span>";
+  }).join("") + '<span style="color:var(--ink-3)">Log scale. Larger dot means more recoverable per month.</span>';
+}
+
+function renderFunnelChart() {
+  var host = el("funnelchart");
+  var gl = leadsGated();
+  var W = cw(host, 420);
+  var rows = LINEAR.map(function (k) {
+    return { k: k, n: STAGE_BY_KEY[k].short, v: gl.filter(function (l) { return reachedOf(l)[k]; }).length };
+  });
+  rows[0].v = gl.length;
+  var max = Math.max.apply(null, rows.map(function (r) { return r.v; })) || 1;
+  var labW = 72, valW = 80, bh = 18, gap = 12;
+  var iw = Math.max(60, W - labW - valW);
+  var H = rows.length * (bh + gap);
+
+  var s = ['<svg width="' + W + '" height="' + H + '" role="img" aria-label="Leads that ever reached each pipeline stage">'];
+  rows.forEach(function (r, i) {
+    var y = i * (bh + gap);
+    var bw = Math.max(r.v > 0 ? 2 : 0, (r.v / max) * iw);
+    var prev = i > 0 ? rows[i - 1].v : null;
+    var conv = prev !== null && prev > 0 ? Math.round((r.v / prev) * 100) + "%" : "";
+    s.push('<text class="lab" x="0" y="' + (y + bh / 2 + 4) + '">' + esc(r.n) + "</text>");
+    s.push('<rect x="' + labW + '" y="' + y + '" width="' + iw + '" height="' + bh + '" fill="var(--surface-2)" rx="3"/>');
+    if (bw > 0) {
+      s.push('<rect x="' + labW + '" y="' + y + '" width="' + bw.toFixed(1) + '" height="' + bh +
+        '" fill="var(--accent)" rx="3" data-tip="' + esc('<span class="tn">' + r.n + '</span><span class="tm">' + r.v + " of " + gl.length + " ever reached</span>") + '"/>');
+    }
+    s.push('<text class="val" x="' + (labW + iw + 8) + '" y="' + (y + bh / 2 + 4) + '">' + fmtInt(r.v) + "</text>");
+    if (conv) s.push('<text class="ax" x="' + (labW + iw + 44) + '" y="' + (y + bh / 2 + 4) + '">' + conv + "</text>");
+  });
+  s.push("</svg>");
+
+  var won = gl.filter(function (l) { return stageOf(l) === "won"; });
+  var lost = gl.filter(function (l) { return stageOf(l) === "lost"; });
+  host.innerHTML = s.join("") +
+    '<div class="row" style="margin-top:12px;gap:16px;font-size:11.5px;color:var(--ink-2)">' +
+    '<span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--good);margin-right:5px"></i>Won <b class="num">' + won.length + '</b> &middot; <span class="num">' + fmtMoney(won.reduce(function (a, l) { return a + recov(l); }, 0)) + '</span>/mo</span>' +
+    '<span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--critical);margin-right:5px"></i>Lost <b class="num">' + lost.length + '</b> &middot; <span class="num">' + fmtMoney(lost.reduce(function (a, l) { return a + recov(l); }, 0)) + '</span>/mo</span>' +
+    "</div>";
+  wireTips(host);
+}
+
+function renderOwners() {
+  var host = el("owners");
+  var gl = leadsGated().filter(function (l) { return tierOf(l) !== "OUT"; });
+  var by = {};
+  gl.forEach(function (l) {
+    var o = ownerOf(l) || "Unassigned";
+    if (!by[o]) by[o] = { n: 0, m: 0 };
+    by[o].n++; by[o].m += recov(l);
+  });
+  var rows = Object.keys(by).map(function (k) { return { n: k, c: by[k].n, m: by[k].m }; })
+    .sort(function (a, b) { return b.m - a.m; }).slice(0, 12);
+  if (!rows.length) { host.innerHTML = '<div class="empty">No gated leads in P0 to P2.</div>'; return; }
+
+  var W = cw(host, 420);
+  var max = rows[0].m || 1;
+  var labW = Math.min(132, Math.max(84, Math.round(W * 0.3))), valW = 66, bh = 16, gap = 10;
+  var iw = Math.max(50, W - labW - valW);
+  var H = rows.length * (bh + gap);
+
+  var s = ['<svg width="' + W + '" height="' + H + '" role="img" aria-label="Recoverable revenue per month by BD and CSM owner">'];
+  rows.forEach(function (r, i) {
+    var y = i * (bh + gap);
+    var bw = Math.max(2, (r.m / max) * iw);
+    var nm = r.n.length > 18 ? r.n.slice(0, 17) + "…" : r.n;
+    s.push('<text class="lab" x="0" y="' + (y + bh / 2 + 4) + '">' + esc(nm) + "</text>");
+    s.push('<rect x="' + labW + '" y="' + y + '" width="' + bw.toFixed(1) + '" height="' + bh +
+      '" fill="var(--accent)" rx="3" data-tip="' + esc('<span class="tn">' + r.n + '</span><span class="tm">' + r.c + " leads &middot; " + fmtFull(r.m) + "/mo recoverable</span>") + '"/>');
+    s.push('<text class="val" x="' + (labW + iw + 8) + '" y="' + (y + bh / 2 + 4) + '">' + fmtMoney(r.m) + "</text>");
+  });
+  s.push("</svg>");
+  host.innerHTML = s.join("");
+  wireTips(host);
+}
+
+function renderHist() {
+  var host = el("hist");
+  var gl = leadsGated().filter(function (l) { return l.capture_90d !== undefined && l.capture_90d !== null; });
+  if (!gl.length) { host.innerHTML = '<div class="empty">No gated shop has a capture rate.</div>'; return; }
+  var edges = [0, .01, .05, .10, .20, .30, .40, 1.01];
+  var names = ["<1%", "1-5%", "5-10%", "10-20%", "20-30%", "30-40%", "40%+"];
+  var buckets = edges.slice(0, -1).map(function (lo2, i) {
+    var hi2 = edges[i + 1];
+    var rows = gl.filter(function (l) { return l.capture_90d >= lo2 && l.capture_90d < hi2; });
+    return { n: names[i], c: rows.length, m: rows.reduce(function (a, l) { return a + recov(l); }, 0), over: lo2 >= .40 };
+  });
+
+  var W = cw(host, 420), H = 200;
+  var m = { t: 12, r: 8, b: 40, l: 38 };
+  var iw = W - m.l - m.r, ih = H - m.t - m.b;
+  var max = Math.max.apply(null, buckets.map(function (b) { return b.c; })) || 1;
+  var slot = iw / buckets.length;
+  var barw = Math.min(24, slot - 8);
+
+  var s = ['<svg width="' + W + '" height="' + H + '" role="img" aria-label="Gated leads grouped by capture rate band">'];
+  var ticks = [0, Math.round(max / 2), max];
+  ticks.forEach(function (t) {
+    var yy = m.t + ih - (t / max) * ih;
+    s.push('<line x1="' + m.l + '" y1="' + yy.toFixed(1) + '" x2="' + (W - m.r) + '" y2="' + yy.toFixed(1) + '" stroke="var(--grid)" stroke-width="1"/>');
+    s.push('<text class="ax" x="' + (m.l - 7) + '" y="' + (yy + 3.5).toFixed(1) + '" text-anchor="end">' + t + "</text>");
+  });
+  buckets.forEach(function (b, i) {
+    var x = m.l + i * slot + (slot - barw) / 2;
+    var h = (b.c / max) * ih;
+    var y = m.t + ih - h;
+    if (b.c > 0) {
+      s.push('<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barw.toFixed(1) + '" height="' + Math.max(h, 2).toFixed(1) +
+        '" rx="3" fill="' + (b.over ? "var(--t-out)" : "var(--accent)") + '" data-tip="' +
+        esc('<span class="tn">' + b.n + ' capture</span><span class="tm">' + b.c + " shops &middot; " + fmtMoney(b.m) + "/mo recoverable</span>") + '"/>');
+      s.push('<text class="val" x="' + (x + barw / 2).toFixed(1) + '" y="' + (y - 5).toFixed(1) + '" text-anchor="middle">' + b.c + "</text>");
+    }
+    s.push('<text class="ax" x="' + (m.l + i * slot + slot / 2).toFixed(1) + '" y="' + (m.t + ih + 15) + '" text-anchor="middle">' + b.n + "</text>");
+  });
+  s.push("</svg>");
+  host.innerHTML = s.join("") +
+    '<div style="font-size:11px;color:var(--ink-3);margin-top:6px">' +
+    "The grey band is already at or above the 40% target, so it has no headroom left to recover.</div>";
+  wireTips(host);
+}
+
+function renderDash() {
+  renderBanner(); renderTiles(); renderTierRow();
+  renderScatter(); renderFunnelChart(); renderOwners(); renderHist();
+}
+
+/* ===================== screening ===================== */
+
+var COLS = [
+  { k: "title",              n: "Lead",          s: function (l) { return l.title.toLowerCase(); } },
+  { k: "owner",              n: "Owner",         s: function (l) { return (ownerOf(l) || "zzz").toLowerCase(); } },
+  { k: "capture_90d",        n: "Capture",       num: true, s: function (l) { return l.capture_90d === undefined ? -1 : l.capture_90d; } },
+  { k: "ws_sales_month",     n: "WS $/mo",       num: true, s: function (l) { return l.ws_sales_month || 0; } },
+  { k: "mobile_sales_month", n: "Mobile $/mo",   num: true, s: function (l) { return l.mobile_sales_month || 0; } },
+  { k: "recoverable",        n: "Recoverable",   num: true, s: recov },
+  { k: "tier",               n: "Priority",      s: function (l) { return TIERS.indexOf(tierOf(l)); } },
+  { k: "stage",              n: "Stage",         s: function (l) { return STAGE_BY_KEY[stageOf(l)].i; } },
+  { k: "flags",              n: "Signals" }
+];
+
+function screenRows() {
+  var rows = leadsGated();
+  if (S.stageFilter) rows = rows.filter(function (l) { return reachedOf(l)[S.stageFilter]; });
+  if (S.fTier === "__un") rows = rows.filter(function (l) { return !isTriaged(l); });
+  else if (S.fTier) rows = rows.filter(function (l) { return tierOf(l) === S.fTier; });
+  if (S.fStage) rows = rows.filter(function (l) { return stageOf(l) === S.fStage; });
+  if (S.fOwner) rows = rows.filter(function (l) { return (ownerOf(l) || "Unassigned") === S.fOwner; });
+  if (S.q) {
+    var q = S.q.toLowerCase();
+    rows = rows.filter(function (l) {
+      return (l.title || "").toLowerCase().indexOf(q) >= 0 ||
+        (l.company_partner || "").toLowerCase().indexOf(q) >= 0 ||
+        (l.company_sf || "").toLowerCase().indexOf(q) >= 0 ||
+        (ownerOf(l) || "").toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  var col = COLS.filter(function (c) { return c.k === S.sort.key; })[0];
+  if (col && col.s) {
+    var dir = S.sort.dir === "asc" ? 1 : -1;
+    rows = rows.slice().sort(function (a, b) {
+      var x = col.s(a), y = col.s(b);
+      return x < y ? -dir : x > y ? dir : 0;
+    });
+  }
+  return rows;
+}
+
+function signalChips(l) {
+  var out = [];
+  (l.hard_blockers || []).forEach(function (b) { out.push('<span class="chip hard" title="' + esc(b) + '">✕ ' + esc(short(b)) + "</span>"); });
+  (l.soft_blockers || []).forEach(function (b) { out.push('<span class="chip soft" title="' + esc(b) + '">⚠ ' + esc(short(b)) + "</span>"); });
+  if (l.features_enabled === 0) out.push('<span class="chip good" title="No web shop features switched on, so the upside is uncaptured">0 features</span>');
+  if (l.site_builder === "Yes") out.push('<span class="chip info" title="Site Builder shop, quick to iterate">Site Builder</span>');
+  if (l.list === "Underperformer") out.push('<span class="chip info">Bottom 40</span>');
+  if (l.list === "Top performer") out.push('<span class="chip info">Top 40</span>');
+  return out.join(" ");
+}
+function short(b) {
+  if (b.indexOf("Partnership status") === 0) return b.replace("Partnership status: ", "");
+  if (b.indexOf("Capture already") === 0) return "At target";
+  if (b.indexOf("No BD/CSM") === 0) return "No owner";
+  if (b.indexOf("No Salesforce") === 0) return "No SF account";
+  if (b.indexOf("Gambling") === 0) return "Gambling";
+  if (b.indexOf("Capture unstable") === 0) return "Unstable";
+  if (b.indexOf("Publisher does not match") === 0) return "Unverified";
+  if (b.indexOf("Web shop URL deleted") === 0) return "URL deleted";
+  if (b.indexOf("On the Excluded tab") === 0) return "Excluded";
+  return b.length > 22 ? b.slice(0, 21) + "…" : b;
+}
+
+function renderScreen() {
+  var rows = screenRows();
+  if (S.cursor >= rows.length) S.cursor = Math.max(0, rows.length - 1);
+
+  var gl = leadsGated();
+  var untr = gl.filter(function (l) { return !isTriaged(l); }).length;
+  el("screen-note").innerHTML = "Sorted by recoverable revenue per month. <b>" + untr + "</b> untriaged." +
+    (S.stageFilter ? " Filtered to leads that reached <b>" + esc(STAGE_BY_KEY[S.stageFilter].n) + "</b>." : "");
+  el("rowcount").textContent = rows.length + " of " + gl.length;
+
+  el("tbl").tHead.innerHTML = "<tr>" + COLS.map(function (c) {
+    var on = S.sort.key === c.k;
+    return '<th class="' + (c.num ? "r" : "") + '" data-sort="' + c.k + '">' + esc(c.n) +
+      (on ? (S.sort.dir === "asc" ? " ↑" : " ↓") : "") + "</th>";
+  }).join("") + "</tr>";
+
+  var body = rows.map(function (l, i) {
+    var t = tierOf(l), stg = stageOf(l);
+    return '<tr data-id="' + esc(l.id) + '" data-cur="' + (i === S.cursor ? 1 : 0) + '">' +
+      "<td><span class=\"ttl\">" + esc(l.title) + '</span><span class="co">' +
+        esc(l.company_sf || l.company_partner || "No company on file") + "</span></td>" +
+      "<td>" + esc(ownerOf(l) || "—") + "</td>" +
+      '<td class="num r">' + fmtPct(l.capture_90d) + "</td>" +
+      '<td class="num r">' + fmtMoney(l.ws_sales_month) + "</td>" +
+      '<td class="num r">' + fmtMoney(l.mobile_sales_month) + "</td>" +
+      '<td class="num r"><b>' + fmtMoney(l.recoverable) + "</b></td>" +
+      '<td><span class="tierbtns">' + TIERS.map(function (tt) {
+        return '<button data-tier="' + tt + '" aria-pressed="' + (t === tt ? "true" : "false") + '"' +
+          (t === tt ? ' style="background:' + tierColor(tt) + '"' : "") +
+          ' title="' + (t === tt && tierIsManual(l) ? "Set by hand" : "Set " + TIER_LABEL[tt]) + '">' + TIER_LABEL[tt] + "</button>";
+      }).join("") + "</span></td>" +
+      '<td><span class="stagepill">' + esc(STAGE_BY_KEY[stg].short) + "</span></td>" +
+      "<td>" + signalChips(l) + "</td></tr>";
+  }).join("");
+  el("tbl").tBodies[0].innerHTML = body;
+  el("screen-empty").innerHTML = rows.length ? "" :
+    '<div class="empty"><b>Nothing matches these filters</b>Widen the gate, clear the search, or switch to All 541.</div>';
+}
+
+/* ===================== board ===================== */
+
+function renderBoard() {
+  var rows = leadsGated();
+  if (S.bTier) rows = rows.filter(function (l) { return tierOf(l) === S.bTier; });
+  if (S.bOwner) rows = rows.filter(function (l) { return (ownerOf(l) || "Unassigned") === S.bOwner; });
+
+  el("board").innerHTML = STAGES.map(function (s) {
+    var inCol = rows.filter(function (l) { return stageOf(l) === s.k; })
+      .sort(function (a, b) { return recov(b) - recov(a); });
+    var money = inCol.reduce(function (a, l) { return a + recov(l); }, 0);
+    var cards = inCol.slice(0, 60).map(function (l) {
+      var t = tierOf(l);
+      return '<div class="lcard" draggable="true" data-id="' + esc(l.id) + '">' +
+        '<div class="lt">' + esc(l.title) + "</div>" +
+        '<div class="lc">' + esc(l.company_sf || l.company_partner || "—") + "</div>" +
+        '<div class="lr">' + fmtMoney(l.recoverable) + "/mo</div>" +
+        '<div class="lm"><span class="tbadge' + (tierIsManual(l) ? " manual" : "") + '" style="background:' + tierColor(t) + ';color:' +
+          (t === "P2" || t === "OUT" ? "#15171a" : "#fff") + '">' + TIER_LABEL[t] + "</span>" +
+        '<span style="font-size:10.5px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+          esc(ownerOf(l) || "Unassigned") + "</span></div></div>";
+    }).join("");
+    return '<div class="col" data-stage="' + s.k + '">' +
+      '<div class="col-h"><i style="width:8px;height:8px;border-radius:2px;background:' + stageColor(s.k) + '"></i>' +
+      '<span class="nm">' + esc(s.short) + '</span><span class="ct">' + inCol.length + "</span></div>" +
+      '<div class="col-b">' + (cards || '<div style="font-size:11px;color:var(--ink-3);padding:6px">Empty</div>') +
+      (inCol.length > 60 ? '<div style="font-size:10.5px;color:var(--ink-3);padding:4px 6px">+' + (inCol.length - 60) + " more</div>" : "") +
+      "</div>" +
+      '<div style="padding:7px 11px;border-top:1px solid var(--border);font:600 10.5px/1 var(--f-mono);color:var(--ink-3)">' +
+      fmtMoney(money) + "/mo</div></div>";
+  }).join("");
+}
+
+/* ===================== drawer ===================== */
+
+function kv(pairs) {
+  var rows = pairs.filter(function (p) { return p[1] !== undefined && p[1] !== null && p[1] !== "" && p[1] !== "--"; });
+  if (!rows.length) return '<div style="font-size:12px;color:var(--ink-3)">Nothing on file.</div>';
+  return '<dl class="kv">' + rows.map(function (p) {
+    return "<dt>" + esc(p[0]) + '</dt><dd' + (p[2] ? ' class="num"' : "") + ">" + (p[3] ? p[1] : esc(p[1])) + "</dd>";
+  }).join("") + "</dl>";
+}
+
+function renderDrawer() {
+  var host = el("drawer-host");
+  if (!S.openId) { host.innerHTML = ""; return; }
+  var l = S.byId[S.openId];
+  if (!l) { host.innerHTML = ""; return; }
+  var s = st(l.id) || {}, t = tierOf(l), stg = stageOf(l);
+
+  var link = function (u, label) { return u ? '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(label) + "</a>" : null; };
+
+  host.innerHTML =
+    '<div class="scrim" data-close="1"></div><aside class="drawer" role="dialog" aria-modal="true" aria-label="' + esc(l.title) + '">' +
+    '<div class="dh"><div style="flex:1;min-width:0">' +
+      "<h3>" + esc(l.title) + "</h3>" +
+      '<div class="dsub">' + esc(l.company_sf || l.company_partner || "No company on file") +
+      (ownerOf(l) ? " &middot; " + esc(ownerOf(l)) : "") +
+      (l.project_id ? ' &middot; <span class="num">PID ' + l.project_id + "</span>" : "") + "</div>" +
+    '</div><button class="icon-btn" data-close="1" aria-label="Close">&#10005;</button></div>' +
+    '<div class="db">' +
+
+    '<div class="grp"><h4>Priority and stage</h4>' +
+      '<div class="row" style="margin-bottom:8px"><span class="tierbtns" id="d-tier">' +
+        TIERS.map(function (tt) {
+          return '<button data-tier="' + tt + '" aria-pressed="' + (t === tt ? "true" : "false") + '"' +
+            (t === tt ? ' style="background:' + tierColor(tt) + ';color:' + (tt === "P2" || tt === "OUT" ? "#15171a" : "#fff") + '"' : "") +
+            ">" + TIER_LABEL[tt] + "</button>";
+        }).join("") +
+      '</span>' +
+      (tierIsManual(l) ? '<button class="btn" id="d-reset">Back to formula (' + l.tier + ")</button>" : "") +
+      "</div>" +
+      '<div style="font-size:11.5px;color:var(--ink-3);margin-bottom:10px">' +
+        "Formula says <b>" + l.tier + "</b>: " + esc(l.tier_reason || "") +
+        (tierIsManual(l) ? ". Overridden by hand." : "") + "</div>" +
+      '<select id="d-stage" aria-label="Stage">' + STAGES.map(function (ss) {
+        return '<option value="' + ss.k + '"' + (ss.k === stg ? " selected" : "") + ">" + esc(ss.n) + "</option>";
+      }).join("") + "</select>" +
+    "</div>" +
+
+    '<div class="grp"><h4>Opportunity</h4>' + kv([
+      ["Capture rate, 90d", fmtPct(l.capture_90d), true],
+      ["Capture rate, 12m", fmtPct(l.capture_12m), true],
+      ["Headroom to " + fmtPct(S.meta.benchmark, 0), l.headroom === undefined ? null : fmtPct(l.headroom), true],
+      ["Recoverable / month", fmtFull(l.recoverable), true],
+      ["Xsolla WS sales / month", fmtFull(l.ws_sales_month), true],
+      ["Mobile store sales / month", fmtFull(l.mobile_sales_month), true],
+      ["Total sales / month", fmtFull(l.total_sales_month), true],
+      ["Xsolla WS revenue / month", fmtFull(l.ws_revenue_month), true],
+      ["Sheet's upside at 10%", fmtFull(l.upside_at_10), true],
+      ["Payers / month", fmtInt(l.payers_month), true],
+      ["Purchases / month", fmtInt(l.purchases_month), true],
+      ["ARPPU, 90d", fmtFull(l.arppu), true],
+      ["Mobile sales YoY", l.yoy_delta === undefined ? null : fmtPct(l.yoy_delta, 1), true]
+    ]) + "</div>" +
+
+    '<div class="grp"><h4>Signals</h4>' +
+      (signalChips(l) || '<span class="chip good">Nothing flagged</span>') +
+      ((l.flags || []).length ? '<div style="margin-top:8px;font-size:11.5px;color:var(--ink-3)">' +
+        (l.flags || []).map(esc).join("<br>") + "</div>" : "") + "</div>" +
+
+    '<div class="grp"><h4>Integration</h4>' + kv([
+      ["Solution", l.solution], ["ABCD segment", l.abcd], ["Site Builder", l.site_builder],
+      ["Custom web shop", l.custom_ws], ["Partnership status", l.partnership_status],
+      ["Integration", l.integration], ["Support level", l.support_level],
+      ["Features enabled", l.features_enabled === undefined ? null : String(l.features_enabled), true],
+      ["Integration score", l.integration_score === undefined ? null : String(l.integration_score), true],
+      ["Take rate", l.take_rate === undefined ? null : fmtPct(l.take_rate, 2), true],
+      ["WS launch date", l.ws_launch_date],
+      ["Visits, 6m", fmtInt(l.visits_6m), true],
+      ["Visit to payment CVR", l.cvr === undefined ? null : fmtPct(l.cvr / 100, 2), true]
+    ]) + "</div>" +
+
+    '<div class="grp"><h4>Audience</h4>' + kv([
+      ["Genre", l.genre], ["All genre sources", (l.genres_all || []).join(", ")],
+      ["Top countries", (l.geo || []).join(", ")],
+      ["Average age", l.avg_age === undefined ? null : String(Math.round(l.avg_age)), true],
+      ["Gender split", l.gender_split],
+      ["Monetization", (l.monetization || []).join(", ")],
+      ["Licensed IP", l.licensed_ip],
+      ["Store rating", l.store_rating === undefined ? null : String(l.store_rating), true],
+      ["Localisations", fmtInt(l.localisations), true],
+      ["Countries available", fmtInt(l.countries_available), true],
+      ["Publisher", l.publisher], ["Publisher country", l.publisher_country]
+    ]) + "</div>" +
+
+    '<div class="grp"><h4>Compliance</h4>' + kv([
+      ["Gambling content", l.gambling], ["Flag basis", l.gambling_basis],
+      ["Age rating", l.age_rating], ["Advisories", (l.content_advisories || []).join("; ")]
+    ]) + "</div>" +
+
+    '<div class="grp"><h4>Links and data quality</h4>' + kv([
+      ["Web shop", link(l.ws_link, l.ws_link || ""), false, true],
+      ["Link status", l.link_status],
+      ["App Store", link(l.app_store_link, "Open listing"), false, true],
+      ["Public-source match", l.public_source_match], ["Match note", l.public_source_note],
+      ["Similarweb", l.similarweb_status], ["Data quality note", l.data_quality_note],
+      ["Excluded because", l.excluded_because],
+      ["Overall rank", l.rank === undefined ? null : String(l.rank), true],
+      ["Research list", l.list]
+    ]) + "</div>" +
+
+    '<div class="grp"><h4>Next step</h4>' +
+      '<input type="text" id="d-next" value="' + esc(s.next_step || "") + '" placeholder="What happens next, and by when">' +
+      '<h4 style="margin-top:12px">Notes</h4>' +
+      '<textarea id="d-notes" rows="4" placeholder="Context for whoever picks this up">' + esc(s.notes || "") + "</textarea>" +
+      '<div class="row" style="margin-top:8px"><button class="btn pri" id="d-save">Save</button>' +
+      '<span style="font-size:11px;color:var(--ink-3)">' +
+        (s.updated_at ? "Last change " + esc(String(s.updated_at).slice(0, 16).replace("T", " ")) : "No changes yet") +
+      "</span></div></div>" +
+
+    "</div></aside>";
+}
+
+/* ===================== AI batch move ===================== */
+
+var AI = { pending: null, busy: false };
+
+function renderAI() {
+  var p = el("aipanel");
+  if (p.hidden) { p.innerHTML = ""; return; }
+
+  if (!S.sample) {
+    p.innerHTML = '<div class="banner"><b>AI batch move is unavailable in this view.</b> ' +
+      "You can still tier and move leads by hand, and Claude can batch-move them from the chat that published this page.</div>";
+    return;
+  }
+
+  var scope = screenRows();
+  var diff = AI.pending;
+
+  p.innerHTML = '<div class="card pad" style="margin-bottom:12px">' +
+    '<div class="chart-t">Ask AI to batch move</div>' +
+    '<div class="chart-s">Claude sees the <b>' + scope.length + '</b> leads currently matching your filters, with their capture rate, revenue, tier, stage and blockers. ' +
+    "Nothing is written until you approve the diff.</div>" +
+    '<textarea id="ai-q" rows="2" placeholder="Move every gambling lead to Out. Tier anything above $2M recoverable as P0. Mark the Bottom 40 with no owner as P1 and set stage to Qualified."></textarea>' +
+    '<div class="row" style="margin-top:8px">' +
+      '<button class="btn pri" id="ai-run"' + (AI.busy ? " disabled" : "") + ">" + (AI.busy ? "Thinking…" : "Propose changes") + "</button>" +
+      '<button class="btn" id="ai-close">Close</button>' +
+      '<span id="ai-status" style="font-size:11.5px;color:var(--ink-3)"></span>' +
+    "</div>" +
+    (diff ? aiDiffHtml(diff) : "") +
+    "</div>";
+}
+
+function aiDiffHtml(diff) {
+  if (!diff.changes.length) {
+    return '<div class="banner" style="margin-top:12px;border-left-color:var(--ink-3)">' +
+      "<b>No changes proposed.</b> " + esc(diff.note || "") + "</div>";
+  }
+  var rows = diff.changes.map(function (c) {
+    var l = S.byId[c.id];
+    var bits = [];
+    if (c.priority) bits.push("priority <b>" + esc(tierOf(l)) + "</b> &rarr; <b>" + esc(c.priority) + "</b>");
+    if (c.stage) bits.push("stage <b>" + esc(STAGE_BY_KEY[stageOf(l)].short) + "</b> &rarr; <b>" + esc(STAGE_BY_KEY[c.stage] ? STAGE_BY_KEY[c.stage].short : c.stage) + "</b>");
+    return "<tr><td>" + esc(l.title) + '</td><td style="font-size:11.5px">' + bits.join(" &middot; ") + "</td></tr>";
+  }).join("");
+  return '<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">' +
+    '<div class="chart-t">' + diff.changes.length + " change" + (diff.changes.length === 1 ? "" : "s") + " proposed</div>" +
+    '<div class="chart-s">' + esc(diff.note || "") + "</div>" +
+    '<div class="tscroll" style="max-height:260px;overflow-y:auto"><table style="min-width:420px"><tbody>' + rows + "</tbody></table></div>" +
+    '<div class="row" style="margin-top:10px">' +
+      '<button class="btn pri" id="ai-apply">Apply ' + diff.changes.length + " change" + (diff.changes.length === 1 ? "" : "s") + "</button>" +
+      '<button class="btn danger" id="ai-discard">Discard</button>' +
+    "</div></div>";
+}
+
+function aiRun() {
+  var q = (el("ai-q").value || "").trim();
+  if (!q) { toast("Describe the move first"); return; }
+  var scope = screenRows();
+  if (!scope.length) { toast("No leads in scope"); return; }
+
+  AI.busy = true; AI.pending = null; renderAI();
+
+  var compact = scope.slice(0, 220).map(function (l) {
+    return {
+      id: l.id, title: l.title, company: l.company_sf || l.company_partner || null,
+      owner: ownerOf(l), tier: tierOf(l), stage: stageOf(l),
+      capture: l.capture_90d === undefined ? null : Number((l.capture_90d * 100).toFixed(2)),
+      ws_month: Math.round(l.ws_sales_month || 0), mobile_month: Math.round(l.mobile_sales_month || 0),
+      recoverable_month: Math.round(l.recoverable || 0), genre: l.genre || null,
+      gambling: l.gambling === "Yes", list: l.list || null, features_enabled: l.features_enabled,
+      hard: l.hard_blockers || [], soft: l.soft_blockers || []
+    };
+  });
+
+  var prompt =
+    "You are triaging B2B leads for Xsolla's AFF web shop programme. Each lead is a game web shop.\n" +
+    "Capture rate is the share of a game's revenue going through the Xsolla web shop instead of the mobile stores.\n" +
+    "recoverable_month is the extra monthly revenue if capture reached " + Math.round(S.meta.benchmark * 100) + "%.\n\n" +
+    "Valid priority values: P0, P1, P2, OUT.\n" +
+    "Valid stage values: " + STAGES.map(function (s) { return s.k; }).join(", ") + ".\n\n" +
+    "The user asks: " + q + "\n\n" +
+    "LEADS (JSON):\n" + JSON.stringify(compact) + "\n\n" +
+    'Reply with JSON only: {"note":"<one sentence on what you changed and why>",' +
+    '"changes":[{"id":"<lead id exactly as given>","priority":"<optional>","stage":"<optional>"}]}\n' +
+    "Only include a lead if it actually changes. Omit a field you are not changing. " +
+    "Never invent an id. If the request is unclear or matches nothing, return an empty changes array and explain in note.";
+
+  S.sample.json(prompt, { modelTier: "default" }).then(function (r) {
+    var changes = (r && r.changes) || [];
+    var clean = [], dropped = 0;
+    for (var i = 0; i < changes.length; i++) {
+      var c = changes[i];
+      if (!c || !c.id || !S.byId[c.id]) { dropped++; continue; }
+      var keep = { id: c.id };
+      if (c.priority && TIERS.indexOf(c.priority) >= 0) keep.priority = c.priority;
+      if (c.stage && STAGE_BY_KEY[c.stage]) keep.stage = c.stage;
+      if (!keep.priority && !keep.stage) { dropped++; continue; }
+      /* Skip no-ops so the diff only shows real movement. */
+      var l = S.byId[c.id];
+      if (keep.priority === tierOf(l)) delete keep.priority;
+      if (keep.stage === stageOf(l)) delete keep.stage;
+      if (!keep.priority && !keep.stage) continue;
+      clean.push(keep);
+    }
+    AI.busy = false;
+    AI.pending = {
+      note: ((r && r.note) || "") + (dropped ? " (" + dropped + " unusable row" + (dropped === 1 ? "" : "s") + " dropped)" : ""),
+      changes: clean
+    };
+    renderAI();
+  })["catch"](function (e) {
+    AI.busy = false; renderAI();
+    var code = (e && e.code) || "";
+    if (code === "not_granted") { S.sample = null; renderAI(); return; }
+    toast(code === "rate_limited" ? "Rate limited, try again shortly" : "AI could not answer: " + ((e && e.message) || code || "unknown"));
+  });
+}
+
+function aiApply() {
+  var diff = AI.pending;
+  if (!diff) return;
+  var n = diff.changes.length;
+  var jobs = diff.changes.map(function (c) {
+    var patch = {};
+    if (c.priority) { patch.priority = c.priority; patch.priority_source = "manual"; patch.priority_reason = "AI batch move: " + (diff.note || ""); }
+    if (c.stage) patch.stage = c.stage;
+    return writeLead(c.id, patch, "ai-batch");
+  });
+  AI.pending = null;
+  Promise.all(jobs).then(function () {
+    toast("Applied " + n + " change" + (n === 1 ? "" : "s"));
+    renderAI(); render();
+  });
+}
+
+/* ===================== filters ===================== */
+
+function buildFilters() {
+  var owners = {};
+  S.leads.forEach(function (l) { owners[l.owner || "Unassigned"] = 1; });
+  var names = Object.keys(owners).sort();
+  var opts = '<option value="">All owners</option>' + names.map(function (n) {
+    return '<option value="' + esc(n) + '">' + esc(n) + "</option>";
+  }).join("");
+  el("f-owner").innerHTML = opts;
+  el("b-owner").innerHTML = opts;
+  var so = '<option value="">All stages</option>' + STAGES.map(function (s) {
+    return '<option value="' + s.k + '">' + esc(s.n) + "</option>";
+  }).join("");
+  el("f-stage").innerHTML = so;
+}
+
+/* ===================== render ===================== */
+
+var raf = null;
+function render() {
+  if (!S.meta) return;
+  if (raf) cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(function () {
+    raf = null;
+    el("leadcount").textContent = leadsGated().length + " leads";
+    el("v-dash").hidden = S.view !== "dash";
+    el("v-screen").hidden = S.view !== "screen";
+    el("v-board").hidden = S.view !== "board";
+    if (S.view === "dash") renderDash();
+    if (S.view === "screen") { renderScreen(); renderAI(); }
+    if (S.view === "board") renderBoard();
+    renderDrawer();
+  });
+}
+
+/* ===================== events ===================== */
+
+function setView(v) {
+  S.view = v;
+  ["dash", "screen", "board"].forEach(function (k) {
+    el("tab-" + k).setAttribute("aria-selected", k === v ? "true" : "false");
+  });
+  try { localStorage.setItem("aff.view", v); } catch (e) {}
+  render();
+}
+
+el("tabs").addEventListener("click", function (e) {
+  var b = e.target.closest("button[role=tab]");
+  if (b) setView(b.id.replace("tab-", ""));
+});
+
+el("gateseg").addEventListener("click", function (e) {
+  var b = e.target.closest("button[data-gate]");
+  if (!b) return;
+  S.gate = b.getAttribute("data-gate");
+  var btns = el("gateseg").querySelectorAll("button");
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].setAttribute("aria-pressed", btns[i] === b ? "true" : "false");
+  }
+  if (S.gate === "webshop100k") { S.threshold = 100000; el("thrlabel").textContent = "WS $/mo"; }
+  if (S.gate === "underperformer") { S.threshold = 333000; el("thrlabel").textContent = "Mobile $/mo"; }
+  el("thr").value = String(S.threshold);
+  el("thrwrap").hidden = S.gate === "all";
+  S.cursor = 0;
+  try { localStorage.setItem("aff.gate", S.gate); } catch (e2) {}
+  render();
+});
+
+el("thr").addEventListener("input", function () {
+  var v = parseFloat(String(el("thr").value).replace(/[^0-9.]/g, ""));
+  S.threshold = isNaN(v) ? 0 : v;
+  S.cursor = 0;
+  render();
+});
+
+el("themebtn").addEventListener("click", function () {
+  var cur = document.documentElement.getAttribute("data-theme");
+  var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  var next = cur === "dark" ? "light" : cur === "light" ? "dark" : (dark ? "light" : "dark");
+  document.documentElement.setAttribute("data-theme", next);
+  try { localStorage.setItem("aff.theme", next); } catch (e) {}
+  render();
+});
+
+el("tiles").addEventListener("click", function (e) {
+  var b = e.target.closest("[data-stagetile]");
+  if (!b) return;
+  var k = b.getAttribute("data-stagetile");
+  S.stageFilter = S.stageFilter === k ? "" : k;
+  setView("screen");
+});
+
+/* screening table: sort, tier buttons, row open */
+el("tbl").addEventListener("click", function (e) {
+  var th = e.target.closest("th[data-sort]");
+  if (th) {
+    var k = th.getAttribute("data-sort");
+    if (!COLS.filter(function (c) { return c.k === k && c.s; }).length) return;
+    S.sort = S.sort.key === k
+      ? { key: k, dir: S.sort.dir === "asc" ? "desc" : "asc" }
+      : { key: k, dir: k === "title" || k === "owner" ? "asc" : "desc" };
+    render();
+    return;
+  }
+  var tb = e.target.closest("button[data-tier]");
+  var tr = e.target.closest("tr[data-id]");
+  if (tb && tr) {
+    e.stopPropagation();
+    var id = tr.getAttribute("data-id");
+    var want = tb.getAttribute("data-tier");
+    setTier(id, tierOf(S.byId[id]) === want && tierIsManual(S.byId[id]) ? null : want);
+    return;
+  }
+  if (tr) {
+    var rows = screenRows();
+    for (var i = 0; i < rows.length; i++) if (rows[i].id === tr.getAttribute("data-id")) S.cursor = i;
+    S.openId = tr.getAttribute("data-id");
+    render();
+  }
+});
+
+el("q").addEventListener("input", function () { S.q = el("q").value; S.cursor = 0; render(); });
+el("f-tier").addEventListener("change", function () { S.fTier = el("f-tier").value; S.cursor = 0; render(); });
+el("f-stage").addEventListener("change", function () { S.fStage = el("f-stage").value; S.cursor = 0; render(); });
+el("f-owner").addEventListener("change", function () { S.fOwner = el("f-owner").value; S.cursor = 0; render(); });
+el("b-tier").addEventListener("change", function () { S.bTier = el("b-tier").value; render(); });
+el("b-owner").addEventListener("change", function () { S.bOwner = el("b-owner").value; render(); });
+
+el("aibtn").addEventListener("click", function () {
+  el("aipanel").hidden = !el("aipanel").hidden;
+  renderAI();
+});
+el("aipanel").addEventListener("click", function (e) {
+  if (e.target.closest("#ai-run")) aiRun();
+  else if (e.target.closest("#ai-apply")) aiApply();
+  else if (e.target.closest("#ai-discard")) { AI.pending = null; renderAI(); }
+  else if (e.target.closest("#ai-close")) { el("aipanel").hidden = true; AI.pending = null; renderAI(); }
+});
+
+/* drawer */
+el("drawer-host").addEventListener("click", function (e) {
+  if (e.target.closest("[data-close]")) { S.openId = null; render(); return; }
+  var tb = e.target.closest("#d-tier button[data-tier]");
+  if (tb) {
+    var want = tb.getAttribute("data-tier");
+    var l = S.byId[S.openId];
+    setTier(S.openId, tierOf(l) === want && tierIsManual(l) ? null : want);
+    return;
+  }
+  if (e.target.closest("#d-reset")) { setTier(S.openId, null); return; }
+  if (e.target.closest("#d-save")) {
+    writeLead(S.openId, { next_step: el("d-next").value, notes: el("d-notes").value }, "manual");
+    toast("Saved");
+  }
+});
+el("drawer-host").addEventListener("change", function (e) {
+  if (e.target.id === "d-stage") setStage(S.openId, e.target.value);
+});
+
+/* board drag and drop */
+var dragId = null;
+el("board").addEventListener("dragstart", function (e) {
+  var c = e.target.closest(".lcard[data-id]");
+  if (!c) return;
+  dragId = c.getAttribute("data-id");
+  c.classList.add("dragging");
+  if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragId); }
+});
+el("board").addEventListener("dragend", function () {
+  dragId = null;
+  var ds = el("board").querySelectorAll(".dragging");
+  for (var i = 0; i < ds.length; i++) ds[i].classList.remove("dragging");
+  var os = el("board").querySelectorAll(".col.over");
+  for (var j = 0; j < os.length; j++) os[j].classList.remove("over");
+});
+el("board").addEventListener("dragover", function (e) {
+  var col = e.target.closest(".col[data-stage]");
+  if (!col || !dragId) return;
+  e.preventDefault();
+  var os = el("board").querySelectorAll(".col.over");
+  for (var i = 0; i < os.length; i++) os[i].classList.remove("over");
+  col.classList.add("over");
+});
+el("board").addEventListener("drop", function (e) {
+  var col = e.target.closest(".col[data-stage]");
+  if (!col || !dragId) return;
+  e.preventDefault();
+  var id = dragId;
+  dragId = null;
+  setStage(id, col.getAttribute("data-stage"));
+});
+el("board").addEventListener("click", function (e) {
+  var c = e.target.closest(".lcard[data-id]");
+  if (c) { S.openId = c.getAttribute("data-id"); render(); }
+});
+
+/* keyboard triage */
+document.addEventListener("keydown", function (e) {
+  var tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "textarea" || tag === "select") {
+    if (e.key === "Escape") e.target.blur();
+    return;
+  }
+  if (e.key === "Escape" && S.openId) { S.openId = null; render(); return; }
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+  if (S.openId) {
+    var l0 = S.byId[S.openId];
+    if (e.key === "1") { setTier(l0.id, "P0"); e.preventDefault(); return; }
+    if (e.key === "2") { setTier(l0.id, "P1"); e.preventDefault(); return; }
+    if (e.key === "3") { setTier(l0.id, "P2"); e.preventDefault(); return; }
+    if (e.key === "0") { setTier(l0.id, "OUT"); e.preventDefault(); return; }
+    if (e.key === "]") { advanceStage(l0.id); e.preventDefault(); return; }
+    return;
+  }
+  if (S.view !== "screen") return;
+
+  var rows = screenRows();
+  if (!rows.length) return;
+  var cur = rows[Math.min(S.cursor, rows.length - 1)];
+
+  if (e.key === "j" || e.key === "ArrowDown") { S.cursor = Math.min(S.cursor + 1, rows.length - 1); scrollCursor(); e.preventDefault(); }
+  else if (e.key === "k" || e.key === "ArrowUp") { S.cursor = Math.max(S.cursor - 1, 0); scrollCursor(); e.preventDefault(); }
+  else if (e.key === "1") { setTier(cur.id, "P0"); nudge(rows); e.preventDefault(); }
+  else if (e.key === "2") { setTier(cur.id, "P1"); nudge(rows); e.preventDefault(); }
+  else if (e.key === "3") { setTier(cur.id, "P2"); nudge(rows); e.preventDefault(); }
+  else if (e.key === "0") { setTier(cur.id, "OUT"); nudge(rows); e.preventDefault(); }
+  else if (e.key === "]") { advanceStage(cur.id); e.preventDefault(); }
+  else if (e.key === "Enter") { S.openId = cur.id; render(); e.preventDefault(); }
+});
+
+/* After tiering, step down only while the list order is stable. */
+function nudge(rows) {
+  if (S.fTier === "__un" || S.fTier) return;
+  S.cursor = Math.min(S.cursor + 1, rows.length - 1);
+  scrollCursor();
+}
+function scrollCursor() {
+  render();
+  requestAnimationFrame(function () {
+    var r = el("tbl").querySelector('tbody tr[data-cur="1"]');
+    if (r && r.scrollIntoView) r.scrollIntoView({ block: "nearest" });
+  });
+}
+
+var rt = null;
+window.addEventListener("resize", function () {
+  if (rt) clearTimeout(rt);
+  rt = setTimeout(function () { if (S.view === "dash") renderDash(); }, 160);
+});
+
+/* ===================== restore and start ===================== */
+
+try {
+  var th = localStorage.getItem("aff.theme");
+  if (th) document.documentElement.setAttribute("data-theme", th);
+  var gv = localStorage.getItem("aff.gate");
+  if (gv === "webshop100k" || gv === "underperformer" || gv === "all") {
+    S.gate = gv;
+    S.threshold = gv === "underperformer" ? 333000 : 100000;
+    var gb = el("gateseg").querySelectorAll("button");
+    for (var gi = 0; gi < gb.length; gi++) {
+      gb[gi].setAttribute("aria-pressed", gb[gi].getAttribute("data-gate") === gv ? "true" : "false");
+    }
+    el("thr").value = String(S.threshold);
+    el("thrlabel").textContent = gv === "underperformer" ? "Mobile $/mo" : "WS $/mo";
+    el("thrwrap").hidden = gv === "all";
+  }
+  var vv = localStorage.getItem("aff.view");
+  if (vv === "dash" || vv === "screen" || vv === "board") {
+    S.view = vv;
+    ["dash", "screen", "board"].forEach(function (k) {
+      el("tab-" + k).setAttribute("aria-selected", k === vv ? "true" : "false");
+    });
+  }
+} catch (e) {}
+
+if (location.hash === "#screening") setView("screen");
+else if (location.hash === "#pipeline") setView("board");
+
+boot();
+})();
+</script>
