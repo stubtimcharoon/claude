@@ -10,6 +10,10 @@ on:
         description: 'Validate and print what would post, without posting.'
         type: boolean
         default: true
+      skip_research:
+        description: 'Skip Stage A. Tests credentials and Stage B against fixture drafts only. Always a dry run, whatever dry_run says.'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -92,7 +96,29 @@ jobs:
           echo "$out" | grep -qi "ok" || { echo "::error::Unexpected reply from Claude, see log above."; exit 1; }
           echo "Claude auth OK"
 
+      - name: Use fixture drafts (research skipped)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_research }}
+        run: |
+          mkdir -p drafts
+          python3 - <<'PY'
+          import json, sys
+          sys.path.insert(0, "execution")
+          from goals import ari_for
+          fixtures = {
+              "XSOLLA-10661": ("pending", "FIXTURE, research skipped. Short body that fits one chunk."),
+              "XSOLLA-10663": ("on_track", " ".join(
+                  f"FIXTURE sentence {i} exists only to force this body to split into several chunks."
+                  for i in range(1, 9))),
+          }
+          for key, (status, body) in fixtures.items():
+              json.dump({"goal_key": key, "goal_ari": ari_for(key), "status_passthrough": status,
+                         "previous_update_summary": None, "body": body, "sources": []},
+                        open(f"drafts/{key}.json", "w"), indent=2)
+          print("wrote fixture drafts:", ", ".join(fixtures))
+          PY
+
       - name: "Stage A: research and draft"
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.skip_research) }}
         run: |
           set -o pipefail
           if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then unset ANTHROPIC_API_KEY; fi
@@ -104,6 +130,7 @@ jobs:
             2>&1 | tee /tmp/stage-a.log
 
       - name: Assert Stage A produced drafts
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.skip_research) }}
         run: |
           shopt -s nullglob
           files=(drafts/*.json)
@@ -138,8 +165,9 @@ jobs:
 
       - name: "Stage B: post"
         env:
-          # Only a manual run with dry_run=true is a dry run. A scheduled run is NEVER a dry run.
-          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+          # Only a manual run is ever a dry run. A scheduled run is NEVER a dry run.
+          # skip_research forces a dry run, so fixture drafts can never be posted live.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && (inputs.dry_run || inputs.skip_research) && 'true' || 'false' }}
         run: |
           args=()
           if [ "$DRY_RUN" = "true" ]; then
