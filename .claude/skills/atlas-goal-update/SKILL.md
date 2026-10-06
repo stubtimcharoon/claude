@@ -1,6 +1,6 @@
 ---
 name: atlas-goal-update
-description: "Stage A of the two-stage Atlas goal update pipeline. Researches and drafts a delta update for each of eight Atlas goals (Pages and Partner Network) and writes one drafts/<GOAL_KEY>.json per goal. Reads each goal's current status and last update via the Atlassian MCP, researches Slack, Jira, and Confluence, and drafts what changed since the previous update. Does NOT post anything: a separate Python script (execution/post_goal_updates.py, Stage B) chunks and posts the drafts. Use when drafting Atlas goal updates for the eight XSOLLA goals."
+description: "Stage A of the two-stage Atlas goal update pipeline. Researches and drafts a delta update for each of eight Atlas goals (Pages and Partner Network) and writes one drafts/<GOAL_KEY>.json per goal. Reads each goal's current status and last update via the Atlassian MCP, researches Slack, Jira, and Confluence, and drafts what changed since the previous update. Does NOT post anything: a separate Python script (execution/post_goal_updates.py, Stage B) checks length and posts the drafts. Use when drafting Atlas goal updates for the eight XSOLLA goals."
 ---
 
 # Atlas Goal Update Skill (Stage A: research and draft)
@@ -12,7 +12,7 @@ Researches eight Atlas goals and writes **one JSON draft per goal** to `drafts/<
 This is Stage A of a two-stage pipeline.
 
 - **Stage A (this skill): research and drafting ONLY.** Output is `drafts/<GOAL_KEY>.json`. Nothing else.
-- **Stage B (`execution/post_goal_updates.py`): deterministic posting.** It reads the drafts, chunks long bodies into labelled `(1/N)` posts, and posts them to Atlas.
+- **Stage B (`execution/post_goal_updates.py`): deterministic posting.** It reads the drafts, checks each body fits 280 characters, and posts exactly one update per goal.
 
 **This skill must never call the GraphQL API, never call `post-atlas-update.sh`, and never write to Atlas.** No `goals_createUpdate`, no `goals_byKey`, no curl to `xsolla.atlassian.net`. If you find yourself about to post, stop: the draft file is the deliverable. Do not create calendar events or send Slack messages either.
 
@@ -129,11 +129,16 @@ Rules:
 - Order most important first.
 - Status is not in the body. Do not write "on track" or "at risk" into the text unless it is a substantive fact about a named deadline.
 
-### Length: write what the goal deserves
+### Length: ONE post, 280 characters maximum
 
-**Do not count characters. Do not trim to fit a limit.** Older skills capped updates at 280 characters and that destroyed content. Chunking is Stage B's job: it splits long bodies cleanly into `(1/N)` labelled posts. Write the content the goal deserves and let the poster chunk it.
+**Each goal gets exactly one post, never several, and never split into `(1/N)` parts.** The body must be **280 visible characters or fewer**. Count it before you write the file, and tighten the wording until it fits. Do not rely on Stage B to fix a long draft: it rejects an over-length body and fails that goal, it does not split or trim it.
 
-A rough steer is one to three sentences per goal. That is a steer, not a cap. A goal with several real changes can run longer. Do not pad a quiet goal to match a busy one.
+How to fit it:
+- Lead with the one to three facts that changed most, then the most important blocker or next date.
+- Keep exact numbers, dates, names and ticket keys. Cut adjectives, background and anything the previous update already said.
+- Prefer one dense paragraph over several sentences of setup. A short fragment style works ("Launch fixed for Oct 15. Blocker: databases need infra support (INFRASTRUCTURE-12933).").
+- A quiet goal gets a short line. Do not pad it to match a busy one.
+- For a goal whose history uses the "Key wins:" style (for example XSOLLA-7370), keep that style.
 
 ### Status
 
@@ -162,7 +167,7 @@ Field rules:
 - `body`: the delta from Step 3.
 - `sources`: array of URL strings that drove the body. Empty array `[]` is allowed if nothing was found, but then the body should be the one-line no-change statement.
 
-After writing, validate each file (for example `python3 -c "import json,sys; json.load(open(sys.argv[1]))" drafts/<KEY>.json`) and check that no `body` contains an em-dash, a URL or markdown syntax. Then report the eight draft paths and a one-line summary per goal, and **stop**. Do not post.
+After writing, validate each file (for example `python3 -c "import json,sys; json.load(open(sys.argv[1]))" drafts/<KEY>.json`) and check that no `body` contains an em-dash, a URL or markdown syntax, and that `len(body) <= 280` for every file. Then report the eight draft paths and a one-line summary per goal, and **stop**. Do not post.
 
 ## House style
 
@@ -177,7 +182,7 @@ After writing, validate each file (for example `python3 -c "import json,sys; jso
 - **Status is passthrough.** Copy `status.value` verbatim. Only deviate if a hard external deadline is demonstrably slipping.
 - **This skill never posts.** No GraphQL, no `post-atlas-update.sh`, no `goals_createUpdate`, no writes to Atlas. Posting is `execution/post_goal_updates.py` (Stage B).
 - **`drafts/` is gitignored.** Drafts must never be committed or pushed. Do not `git add` them.
-- **Do not count characters or trim.** The 280-character cap lives in Stage B's chunking, not here.
+- **One post, 280 characters.** Count every body before writing the draft and tighten it to fit. Never split an update across posts. Stage B fails a goal whose body is over the limit.
 - **XSOLLA-7370 page selection.** Parse the title date; never sort by created date (the field does not exist on descendants). `lastModified` is a tie-break only.
 - **cloudId is top-level.** Passing it inside `inputs` makes the execute call fail.
 - Keep `getGoal` calls to `limits.updates: 3`. Only the most recent update feeds `previous_update_summary`; the other two help you see whether a theme keeps repeating.

@@ -2,8 +2,8 @@
 """Stage B of the Atlas goal update pipeline: post drafted updates, deterministically.
 
 Stage A (the atlas-goal-update skill) researches and writes one drafts/<KEY>.json per
-goal. This script reads those drafts, chunks each body to the Atlas 280-visible-character
-limit, posts each chunk as its own goal update, and verifies every post landed.
+goal. This script reads those drafts, checks each body fits the Atlas 280-visible-character
+limit, posts exactly one update per goal, and verifies every post landed.
 
 No AI, no Google Sheets. Standard library plus requests.
 
@@ -53,108 +53,27 @@ class GoalError(Exception):
     """A per-goal failure. Recorded against the goal, never silently swallowed."""
 
 
-# --------------------------------------------------------------------------- chunking
+# ------------------------------------------------------------------------------- body
 
 
-def _split_sentences(text: str) -> list[str]:
-    parts = re.split(r"(?<=[.!?])\s+", text.strip())
-    return [p.strip() for p in parts if p.strip()]
+def check_body(body: str, limit: int = MAX_VISIBLE_CHARS) -> str:
+    """Return the text to post, or raise GoalError.
 
-
-def _split_further(piece: str, budget: int) -> list[str]:
-    """Break one over-budget piece down: phrase boundaries, then words, then hard split."""
-    if len(piece) <= budget:
-        return [piece]
-
-    for sep in ("; ", ", "):
-        if sep in piece:
-            bits, out, cur = piece.split(sep), [], ""
-            for i, bit in enumerate(bits):
-                tail = sep.rstrip() if i < len(bits) - 1 else ""
-                cand = f"{cur}{sep}{bit}".strip() if cur else bit
-                if len(cand) + len(tail) <= budget:
-                    cur = cand
-                else:
-                    if cur:
-                        out.append(cur)
-                    cur = bit
-            if cur:
-                out.append(cur)
-            if all(len(o) <= budget for o in out):
-                return out
-
-    # Word boundaries.
-    out, cur = [], ""
-    for word in piece.split():
-        cand = f"{cur} {word}".strip()
-        if len(cand) <= budget:
-            cur = cand
-        else:
-            if cur:
-                out.append(cur)
-            # A single word longer than the budget: hard split rather than loop forever.
-            while len(word) > budget:
-                out.append(word[:budget])
-                word = word[budget:]
-            cur = word
-    if cur:
-        out.append(cur)
-    return out
-
-
-def _pack(pieces: list[str], budget: int) -> list[str]:
-    out, cur = [], ""
-    for piece in pieces:
-        for sub in _split_further(piece, budget):
-            cand = f"{cur} {sub}".strip() if cur else sub
-            if len(cand) <= budget:
-                cur = cand
-            else:
-                if cur:
-                    out.append(cur)
-                cur = sub
-    if cur:
-        out.append(cur)
-    return out
-
-
-def chunk_body(body: str, limit: int = MAX_VISIBLE_CHARS) -> list[str]:
-    """Split body into chunks that each fit `limit` VISIBLE characters, suffix included.
-
-    A single chunk carries no suffix. Multiple chunks each get " (i/N)" appended, and the
-    suffix width is reserved from the packing budget first, because the suffix is itself
-    visible text that counts toward the cap.
-
-    Note: Francis's original chunks on the escaped JSON length (800). That measures the
-    wrong thing. Atlassian rejects on visible length at 280.
+    One post per goal, never split. Atlas rejects a summary over `limit` VISIBLE
+    characters, and splitting would show up as several posts on the goal, which is not
+    wanted. A body over the limit is an error against that goal, so the draft has to be
+    tightened upstream. This script never trims or splits it, because trimming would
+    silently change what the author wrote.
     """
-    body = (body or "").strip()
-    if not body:
-        return []
-
-    sentences = _split_sentences(body)
-
-    chunks = _pack(sentences, limit)
-    if len(chunks) <= 1:
-        result = chunks
-    else:
-        # N is unknown until packed, and reserving changes the packing, so iterate.
-        n = len(chunks)
-        for _ in range(5):
-            reserve = len(f" ({n}/{n})")
-            repacked = _pack(sentences, limit - reserve)
-            if len(repacked) == n:
-                break
-            n = len(repacked)
-        total = len(repacked)
-        if total == 1:
-            result = repacked
-        else:
-            result = [f"{c} ({i}/{total})" for i, c in enumerate(repacked, 1)]
-
-    for c in result:
-        assert len(c) <= limit, f"chunk exceeds {limit} visible chars: {len(c)}"
-    return result
+    text = (body or "").strip()
+    if not text:
+        raise GoalError("body is empty")
+    if len(text) > limit:
+        raise GoalError(
+            f"body is {len(text)} chars, over the {limit} char limit. "
+            f"Tighten the draft to {limit} or fewer. It will not be split into several posts."
+        )
+    return text
 
 
 # ------------------------------------------------------------------------------- api
@@ -215,7 +134,7 @@ class GoalsClient:
             return False
         return when.astimezone(dt.timezone.utc).date() == dt.datetime.now(dt.timezone.utc).date()
 
-    def post_chunk(self, goal_ari: str, status: str, text: str) -> str:
+    def post_update(self, goal_ari: str, status: str, text: str) -> str:
         payload = {"goalId": goal_ari, "status": status, "summary": adf_summary(text)}
         data = self._call(M_CREATE_UPDATE, {"input": payload})
         result = data.get("goals_createUpdate") or {}
@@ -252,7 +171,7 @@ def load_draft(path: str) -> dict[str, Any]:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Post drafted Atlas goal updates.")
-    ap.add_argument("--dry-run", action="store_true", help="validate and chunk; post nothing")
+    ap.add_argument("--dry-run", action="store_true", help="validate and print; post nothing")
     ap.add_argument("--drafts-dir", default="drafts")
     ap.add_argument("--only", action="append", default=[], metavar="GOAL_KEY")
     args = ap.parse_args()
@@ -296,16 +215,13 @@ def main() -> int:
                 rows.append(row)
                 continue
 
-            chunks = chunk_body(draft["body"])
-            if not chunks:
-                raise GoalError("body is empty after chunking")
-            row["intended"] = len(chunks)
+            text = check_body(draft["body"])
+            row["intended"] = 1
 
             if args.dry_run:
                 row["state"] = "DRY RUN"
-                print(f"\n--- {key}  status={draft['status_passthrough']}  {len(chunks)} chunk(s)")
-                for i, c in enumerate(chunks, 1):
-                    print(f"  [{i}/{len(chunks)}] {len(c):>3} chars: {c}")
+                print(f"\n--- {key}  status={draft['status_passthrough']}  {len(text)}/{MAX_VISIBLE_CHARS} chars")
+                print(f"  {text}")
                 rows.append(row)
                 continue
 
@@ -321,11 +237,10 @@ def main() -> int:
                 continue
 
             status = draft["status_passthrough"]
-            for i, chunk in enumerate(chunks, 1):
-                url = client.post_chunk(draft["goal_ari"], status, chunk)
-                row["landed"] += 1
-                row["urls"].append(url)
-                print(f"{key}: posted {i}/{len(chunks)} -> {url}")
+            url = client.post_update(draft["goal_ari"], status, text)
+            row["landed"] += 1
+            row["urls"].append(url)
+            print(f"{key}: posted -> {url}")
             row["state"] = "posted"
 
         except (GoalError, json.JSONDecodeError, OSError) as exc:
@@ -336,7 +251,7 @@ def main() -> int:
 
         rows.append(row)
 
-    # Any intended chunk that did not land is a failure, regardless of exceptions.
+    # Any intended post that did not land is a failure, regardless of exceptions.
     shortfall = sum(
         r["intended"] - r["landed"]
         for r in rows
@@ -368,7 +283,7 @@ def main() -> int:
         return 0
 
     if failures or shortfall:
-        print(f"\nFAILED: {failures} goal(s) errored, {shortfall} intended chunk(s) did not land.", file=sys.stderr)
+        print(f"\nFAILED: {failures} goal(s) errored, {shortfall} intended post(s) did not land.", file=sys.stderr)
         return 1
 
     posted = sum(r["landed"] for r in rows)
