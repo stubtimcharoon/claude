@@ -105,10 +105,8 @@ jobs:
           sys.path.insert(0, "execution")
           from goals import ari_for
           fixtures = {
-              "XSOLLA-10661": ("pending", "FIXTURE, research skipped. Short body that fits one chunk."),
-              "XSOLLA-10663": ("on_track", " ".join(
-                  f"FIXTURE sentence {i} exists only to force this body to split into several chunks."
-                  for i in range(1, 9))),
+              "XSOLLA-10661": ("pending", "FIXTURE, research skipped. One short post."),
+              "XSOLLA-10663": ("on_track", "FIXTURE, research skipped. Second goal, still one post under 280 characters."),
           }
           for key, (status, body) in fixtures.items():
               json.dump({"goal_key": key, "goal_ari": ari_for(key), "status_passthrough": status,
@@ -126,7 +124,7 @@ jobs:
           claude --print \
             --allowedTools "Bash" \
             -- \
-            "Run the atlas-goal-update skill (.claude/skills/atlas-goal-update/SKILL.md) end-to-end for all eight goals. Write one draft JSON per goal into drafts/. Do not post anything." \
+            "Run the atlas-goal-update skill (.claude/skills/atlas-goal-update/SKILL.md) end-to-end for all eight goals. Write one draft JSON per goal into drafts/. Each body must be at most 280 characters and will be posted as exactly one update. Do not post anything." \
             2>&1 | tee /tmp/stage-a.log
 
       - name: Assert Stage A produced drafts
