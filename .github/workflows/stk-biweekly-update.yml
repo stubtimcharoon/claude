@@ -1,0 +1,34 @@
+name: STK Bi-Weekly Update
+
+on:
+  schedule:
+    # 8th and 22nd of every month at 10:00 UTC.
+    # One hour after the two Atlas crons so they do not contend.
+    - cron: '0 10 8,22 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish-update:
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
+      ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
+      ATLASSIAN_SITE: ${{ secrets.ATLASSIAN_SITE }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run stk-biweekly-update skill
+        run: |
+          claude --print \
+            --allowedTools "Bash" \
+            -- \
+            "Run the stk-biweekly-update skill (.claude/skills/stk-biweekly-update/SKILL.md) end-to-end for all 7 tracked tickets."
