@@ -1,0 +1,31 @@
+{
+  "_sample": "SAMPLE DATA. Sessions, speakers, leaderboard and reward are fake. Event name, dates, venue and booth come from Confluence MAR 24147689473.",
+  "event": {
+    "name": "gamescom asia x Thailand Game Show 2026",
+    "dates": "29 to 30 October 2026",
+    "venue": "Queen Sirikit National Convention Center (QSNCC), Bangkok",
+    "booth": "Booth E21, B2B Hall"
+  },
+  "sessions": [
+    { "id": "s1", "day": 1, "time": "10:00", "title": "Sample talk: Going direct with a mobile web shop", "speakerId": "p1", "room": "Sample Stage A" },
+    { "id": "s2", "day": 1, "time": "13:30", "title": "Sample panel: Payments that fit Southeast Asia", "speakerId": "p2", "room": "Sample Stage B" },
+    { "id": "s3", "day": 1, "time": "16:00", "title": "Sample demo: Live at the Xsolla booth", "speakerId": "p3", "room": "Booth E21" },
+    { "id": "s4", "day": 2, "time": "11:00", "title": "Sample talk: Launch and grow beyond your home market", "speakerId": "p4", "room": "Sample Stage A" },
+    { "id": "s5", "day": 2, "time": "14:00", "title": "Sample workshop: Partner Network basics", "speakerId": "p1", "room": "Sample Room 3" }
+  ],
+  "speakers": [
+    { "id": "p1", "name": "Sample Speaker A", "role": "Head of Partnerships (sample)" },
+    { "id": "p2", "name": "Sample Speaker B", "role": "Payments Lead (sample)" },
+    { "id": "p3", "name": "Sample Speaker C", "role": "Solutions Engineer (sample)" },
+    { "id": "p4", "name": "Sample Speaker D", "role": "Studio Founder (sample)" }
+  ],
+  "leaderboard": [
+    { "name": "PLAYER_01", "score": 38 },
+    { "name": "PLAYER_02", "score": 33 },
+    { "name": "PLAYER_03", "score": 29 },
+    { "name": "PLAYER_04", "score": 24 },
+    { "name": "PLAYER_05", "score": 18 }
+  ],
+  "game": { "seconds": 30, "grid": 9, "rewardMinScore": 10, "reward": "Sample booth merch item" },
+  "meetingSlots": ["29 Oct 11:00", "29 Oct 15:00", "30 Oct 10:30", "30 Oct 14:30"]
+}

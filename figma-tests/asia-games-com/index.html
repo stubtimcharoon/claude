@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Xsolla at gamescom asia 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+/* Tokens. Sources: xla-holiday-calendar/design/tokens.json (Pentagram Dark and Light).
+   Gaps filled from xsolla-ui-design templates/base.html and base-light.html:
+   --xui-bg-neutral-secondary, --xui-ctrl-mono-secondary-bg-hover, --xui-ctrl-mono-secondary-border-hover,
+   --xui-radius-input, --xui-font-promo-heading. */
+:root {
+  --xui-bg-secondary: #141d1f;
+  --xui-bg-primary: #1b2628;
+  --xui-bg-brand-primary: #80eaff;
+  --xui-bg-brand-secondary: #0b3841;
+  --xui-bg-brand-extra-primary: #cef655;
+  --xui-bg-success-primary: #95ff80;
+  --xui-bg-neutral-secondary: #34474b;
+  --xui-content-primary: #e8eced;
+  --xui-content-secondary: rgba(232,236,237,0.72);
+  --xui-content-tertiary: rgba(232,236,237,0.58);
+  --xui-content-brand-primary: #80eaff;
+  --xui-content-success-primary: #70f655;
+  --xui-content-warning-primary: #f6ab55;
+  --xui-content-alert-primary: #f67055;
+  --xui-content-on-brand: #000000;
+  --xui-content-on-brand-extra: #000000;
+  --xui-content-on-success: #000000;
+  --xui-content-static-dark: #000000;
+  --xui-border-secondary: rgba(178,242,255,0.1);
+  --xui-border-brand: #55dcf6;
+  --xui-border-brand-extra: #cef655;
+  --xui-overlay-mono: rgba(178,242,255,0.06);
+  --xui-ctrl-brand-primary-bg: #80eaff;
+  --xui-ctrl-brand-primary-bg-hover: #b2f2ff;
+  --xui-ctrl-brand-primary-bg-press: #55dcf6;
+  --xui-ctrl-brand-primary-border: #31cae8;
+  --xui-ctrl-brand-primary-border-hover: #55dcf6;
+  --xui-ctrl-brand-text-primary: #000000;
+  --xui-ctrl-brand-extra-primary-bg: #cef655;
+  --xui-ctrl-brand-extra-primary-bg-hover: #bae831;
+  --xui-ctrl-brand-extra-primary-bg-press: #dfff80;
+  --xui-ctrl-brand-extra-text-primary: #000000;
+  --xui-ctrl-mono-secondary-bg: #34474b;
+  --xui-ctrl-mono-secondary-bg-hover: #4b6368;
+  --xui-ctrl-mono-secondary-border: #4b6368;
+  --xui-ctrl-mono-secondary-border-hover: #607f85;
+  --xui-ctrl-mono-text-secondary: #ffffff;
+  --xui-ctrl-focus-border: #55dcf6;
+
+  --xui-space-xs: 4px;
+  --xui-space-s: 8px;
+  --xui-space-m: 16px;
+  --xui-space-l: 24px;
+  --xui-space-xl: 32px;
+  --xui-radius-card: 12px;
+  --xui-radius-input: 4px;
+  --xui-radius-tag-sm: 2px;
+  --xui-radius-tag-lg: 4px;
+  --xui-shadow-surface: 0px 1px 2px rgba(7,7,8,0.2), 0px 2px 6px 2px rgba(7,7,8,0.1);
+  --xui-shadow-surface-hover: 0px 4px 8px 3px rgba(7,7,8,0.1), 0px 1px 3px rgba(7,7,8,0.2);
+  --xui-font-heading-b2c: 'Pilat Wide', 'Aktiv Grotesk', 'Noto Sans', 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --xui-font-body: 'Aktiv Grotesk', 'Noto Sans', 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --xui-font-promo-heading: var(--xui-font-heading-b2c);
+  --xui-font-weight-promo-heading: 700;
+
+  /* Page-level (XUI SKILL.md step 7, tokens.json radius-tile) */
+  --page-duration-micro: 150ms;
+  --page-duration-macro: 300ms;
+  --page-easing: cubic-bezier(0.16, 1, 0.3, 1);
+  --page-radius-tile: 0px;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --xui-bg-secondary: #f3f3f2;
+  --xui-bg-primary: #ffffff;
+  --xui-bg-brand-primary: #80eaff;
+  --xui-bg-brand-secondary: #b2f2ff;
+  --xui-bg-brand-extra-primary: #cef655;
+  --xui-bg-success-primary: #95ff80;
+  --xui-bg-neutral-secondary: #d7dee0;
+  --xui-content-primary: #000000;
+  --xui-content-secondary: rgba(0,0,0,0.75);
+  --xui-content-tertiary: rgba(0,0,0,0.6);
+  --xui-content-brand-primary: #22a8c3;
+  --xui-content-success-primary: #30981b;
+  --xui-content-warning-primary: #c37822;
+  --xui-content-alert-primary: #e84f30;
+  --xui-content-static-dark: #000000;
+  --xui-border-secondary: rgba(0,0,0,0.1);
+  --xui-border-brand: #31cae8;
+  --xui-border-brand-extra: #bae831;
+  --xui-overlay-mono: rgba(0,0,0,0.05);
+  --xui-ctrl-brand-primary-bg-disable: #cccccc;
+  --xui-ctrl-brand-extra-primary-bg: #bae831;
+  --xui-ctrl-brand-extra-primary-bg-hover: #cef655;
+  --xui-ctrl-brand-extra-primary-bg-press: #9bc323;
+  --xui-ctrl-mono-secondary-bg: #dadbd7;
+  --xui-ctrl-mono-secondary-bg-hover: #e6e7e4;
+  --xui-ctrl-mono-secondary-border: #c1c2bc;
+  --xui-ctrl-mono-secondary-border-hover: #dadbd7;
+  --xui-ctrl-mono-text-secondary: #000000;
+  --xui-ctrl-focus-border: #31cae8;
+  color-scheme: light;
+}
+
+/* Base */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--xui-bg-secondary);
+  color: var(--xui-content-primary);
+  font-family: var(--xui-font-body);
+  font-size: 16px;
+  line-height: 20px;
+  overflow-x: hidden;
+}
+h1, h2 { font-family: var(--xui-font-promo-heading); font-weight: var(--xui-font-weight-promo-heading); margin: 0; }
+h3, h4 { font-family: var(--xui-font-heading-b2c); font-weight: 700; margin: 0; }
+h1 { font-size: 32px; line-height: 38px; }
+h2 { font-size: 24px; line-height: 28px; }
+h3 { font-size: 20px; line-height: 24px; }
+p { margin: 0; }
+a { color: var(--xui-content-brand-primary); }
+:focus-visible { outline: 2px solid var(--xui-border-brand); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.skip { position: absolute; left: var(--xui-space-m); top: -100px; z-index: 20; }
+.skip:focus { top: var(--xui-space-s); }
+[hidden] { display: none !important; }
+
+/* from components/button.md (rules for tokens present in tokens.json only) */
+.xui-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: fit-content; max-width: 100%; box-sizing: border-box; text-decoration: none; border: 1px solid transparent; cursor: pointer; font-family: var(--xui-font-body); font-weight: 500; transition: background-color 0.15s ease, box-shadow 0.15s ease; position: relative; white-space: nowrap; outline: none; }
+.xui-btn:focus-visible { outline: 2px solid var(--xui-border-brand); outline-offset: 2px; }
+.xui-btn:disabled { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
+.xui-btn--full-width { width: 100%; }
+.xui-btn--spread { justify-content: space-between; }
+.xui-btn--lg { height: 56px; padding: 0 20px; font-size: 18px; border-radius: 8px; }
+.xui-btn--md { height: 48px; padding: 0 20px; font-size: 16px; border-radius: 8px; }
+.xui-btn--sm { height: 40px; padding: 0 20px; font-size: 14px; border-radius: 4px; }
+.xui-btn--xs { height: 32px; padding: 0 20px; font-size: 12px; border-radius: 4px; }
+.xui-btn--primary.xui-btn--brand { background: var(--xui-ctrl-brand-primary-bg); border-color: var(--xui-ctrl-brand-primary-border); color: var(--xui-ctrl-brand-text-primary); }
+.xui-btn--primary.xui-btn--brand:hover { background: var(--xui-ctrl-brand-primary-bg-hover); border-color: var(--xui-ctrl-brand-primary-border-hover); }
+.xui-btn--primary.xui-btn--brand:active { background: var(--xui-ctrl-brand-primary-bg-press); }
+.xui-btn--primary.xui-btn--brand-extra { background: var(--xui-ctrl-brand-extra-primary-bg); color: var(--xui-ctrl-brand-extra-text-primary); }
+.xui-btn--primary.xui-btn--brand-extra:hover { background: var(--xui-ctrl-brand-extra-primary-bg-hover); }
+.xui-btn--primary.xui-btn--brand-extra:active { background: var(--xui-ctrl-brand-extra-primary-bg-press); }
+.xui-btn--secondary.xui-btn--mono { background: var(--xui-ctrl-mono-secondary-bg); border-color: var(--xui-ctrl-mono-secondary-border); color: var(--xui-ctrl-mono-text-secondary); }
+.xui-btn--secondary.xui-btn--mono:hover { background: var(--xui-ctrl-mono-secondary-bg-hover); border-color: var(--xui-ctrl-mono-secondary-border-hover); }
+.xui-btn--md .xui-btn__icon, .xui-btn--sm .xui-btn__icon { width: 28px; height: 28px; }
+.xui-btn--lg .xui-btn__icon { width: 32px; height: 32px; }
+.xui-btn--xs .xui-btn__icon { width: 24px; height: 24px; }
+
+/* from components/tag.md */
+.xui-tag { display: inline-flex; flex-direction: row; align-items: center; justify-content: center; width: fit-content; font-family: var(--xui-font-body); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: none; background: transparent; }
+.xui-tag--sm { height: 24px; padding: 0 8px; font-size: 14px; gap: 4px; border-radius: var(--xui-radius-tag-sm); }
+.xui-tag--xs { height: 20px; padding: 0 6px; font-size: 12px; gap: 4px; border-radius: var(--xui-radius-tag-sm); }
+.xui-tag__icon { display: block; flex-shrink: 0; }
+.xui-tag--sm .xui-tag__icon, .xui-tag--xs .xui-tag__icon { width: 16px; height: 16px; }
+.xui-tag--primary { background: var(--xui-bg-primary); color: var(--xui-content-primary); }
+.xui-tag--brand { background: var(--xui-bg-brand-primary); color: var(--xui-content-on-brand); }
+.xui-tag--brand-extra { background: var(--xui-bg-brand-extra-primary); color: var(--xui-content-on-brand-extra); }
+.xui-tag--success { background: var(--xui-bg-success-primary); color: var(--xui-content-on-success); }
+
+/* from components/tag-label.md (root, id, name segments) */
+.xui-tag-label { box-sizing: border-box; display: inline-flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; max-width: 100%; min-width: 0; gap: 0; padding: 0; height: 24px; min-height: 24px; max-height: 24px; font-family: var(--xui-font-body); font-size: 14px; font-weight: 400; line-height: 18px; color: var(--xui-content-primary); background: transparent; border: none; border-radius: 0; width: fit-content; overflow: hidden; }
+.xui-tag-label__id { display: inline-flex; align-items: center; align-self: stretch; gap: 2px; padding: 0 8px 0 6px; box-sizing: border-box; flex-shrink: 0; font-variant-numeric: tabular-nums; background: var(--xui-bg-neutral-secondary); color: var(--xui-content-primary); }
+.xui-tag-label__id-series { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 16px; padding: 0 2px; background: var(--xui-content-static-dark); color: var(--xui-content-tertiary); font-size: 14px; font-weight: 400; line-height: 18px; flex-shrink: 0; }
+.xui-tag-label__id-number { font-size: 14px; font-weight: 400; line-height: 18px; color: var(--xui-content-primary); flex-shrink: 0; }
+.xui-tag-label__name { display: block; align-self: stretch; flex: 1 1 0%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-sizing: border-box; padding: 3px 6px; line-height: 18px; background: var(--xui-bg-primary); color: var(--xui-content-primary); font-size: 14px; font-weight: 400; }
+
+/* Page override: in Pentagram Light the documented series chip (content-tertiary on static-dark) is black on black. Flagged in REVIEW.md. */
+:root[data-theme="light"] .xui-tag-label__id-series { background: transparent; color: var(--xui-content-secondary); }
+
+/* from components/quest-card.md */
+.xui-quest-card { display: flex; flex-direction: row; align-items: center; gap: 12px; padding: 12px; background-color: var(--xui-bg-primary); border-radius: 4px; overflow: hidden; box-shadow: var(--xui-shadow-surface); }
+.xui-quest-card__icon-wrap { width: 48px; height: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background-color: var(--xui-overlay-mono); border-radius: 2px; padding: 4px; }
+.xui-quest-card__content { flex: 1; display: flex; flex-direction: row; align-items: center; gap: 12px; min-width: 0; }
+.xui-quest-card__text { flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.xui-quest-card__title { color: var(--xui-content-primary); font-size: 16px; line-height: 20px; font-weight: 400; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.xui-quest-card__subtitle { color: var(--xui-content-tertiary); font-size: 12px; line-height: 18px; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xui-quest-card__status { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.xui-quest-card__status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.xui-quest-card__status--success .xui-quest-card__status-dot { background-color: var(--xui-content-success-primary); }
+.xui-quest-card__status--default .xui-quest-card__status-dot { background-color: var(--xui-content-tertiary); }
+.xui-quest-card__trailing { flex-shrink: 0; }
+
+/* Page layout */
+.site-header { position: sticky; top: 0; z-index: 10; background: var(--xui-bg-secondary); border-bottom: 1px solid var(--xui-border-secondary); padding: var(--xui-space-s) var(--xui-space-m); display: grid; grid-template-columns: 1fr auto; gap: var(--xui-space-s); align-items: center; }
+.logo { display: inline-flex; color: var(--xui-content-primary); }
+.logo svg { width: 95px; height: 20px; }
+.site-nav { grid-column: 1 / -1; display: flex; gap: var(--xui-space-xs); overflow-x: auto; min-width: 0; scrollbar-width: none; }
+.site-nav a { color: var(--xui-content-secondary); text-decoration: none; font-size: 14px; line-height: 18px; padding: var(--xui-space-s); white-space: nowrap; border-radius: 4px; }
+.site-nav a:hover { color: var(--xui-content-primary); }
+
+.band { padding: var(--xui-space-xl) var(--xui-space-m); }
+.band--alt { background: var(--xui-bg-primary); border-top: 1px solid var(--xui-border-secondary); border-bottom: 1px solid var(--xui-border-secondary); }
+.band--accent { background: var(--xui-bg-brand-secondary); }
+.band__head { display: flex; flex-direction: column; gap: var(--xui-space-s); margin-bottom: var(--xui-space-l); }
+.band__lead { color: var(--xui-content-secondary); }
+.stack { display: flex; flex-direction: column; gap: var(--xui-space-m); }
+.row { display: flex; flex-wrap: wrap; gap: var(--xui-space-s); align-items: center; }
+
+/* Tile: straight corners, label above */
+.tile-wrap { display: flex; flex-direction: column; gap: var(--xui-space-xs); min-width: 0; }
+.tile { background: var(--xui-bg-primary); border: 1px solid var(--xui-border-secondary); border-radius: var(--page-radius-tile); box-shadow: var(--xui-shadow-surface); padding: var(--xui-space-m); min-width: 0; }
+.band--alt .tile { background: var(--xui-bg-secondary); }
+.band--alt .tile-wrap .xui-tag-label__name { background: var(--xui-bg-secondary); }
+.tile__meta { color: var(--xui-content-secondary); font-size: 14px; line-height: 18px; margin-top: var(--xui-space-s); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: var(--xui-space-m); }
+
+/* Hero */
+.hero { padding-top: var(--xui-space-xl); padding-bottom: calc(var(--xui-space-xl) * 1.5); }
+.hero__lead { color: var(--xui-content-secondary); font-size: 18px; line-height: 24px; margin-top: var(--xui-space-m); max-width: 60ch; }
+.hero__facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: var(--xui-space-m); margin: var(--xui-space-l) 0; }
+.hero__fact { font-size: 16px; line-height: 20px; font-weight: 500; }
+.hero__ctas { display: flex; flex-direction: column; gap: var(--xui-space-s); }
+.source-note { color: var(--xui-content-tertiary); font-size: 12px; line-height: 16px; margin-top: var(--xui-space-m); }
+
+/* Agenda tabs */
+.tabs { display: flex; gap: var(--xui-space-s); margin-bottom: var(--xui-space-m); }
+.empty { color: var(--xui-content-tertiary); padding: var(--xui-space-m) 0; }
+
+/* Booth */
+.booth { display: grid; gap: var(--xui-space-l); }
+.quests { display: flex; flex-direction: column; gap: var(--xui-space-s); }
+.quest-icon { width: 24px; height: 24px; color: var(--xui-content-primary); }
+.field { display: flex; flex-direction: column; gap: var(--xui-space-xs); }
+.field label { font-size: 14px; line-height: 18px; color: var(--xui-content-secondary); }
+.field input, .field select { height: 48px; padding: 0 var(--xui-space-m); background: var(--xui-overlay-mono); color: var(--xui-content-primary); border: 1px solid var(--xui-border-secondary); border-radius: var(--xui-radius-input); font: inherit; min-width: 0; width: 100%; }
+.field select option { background: var(--xui-bg-primary); color: var(--xui-content-primary); }
+.field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--xui-border-brand); outline-offset: 0; }
+.field-error { color: var(--xui-content-alert-primary); font-size: 14px; line-height: 18px; }
+.form-ok { display: flex; gap: var(--xui-space-s); align-items: flex-start; }
+
+/* Game */
+.game { display: grid; gap: var(--xui-space-l); }
+.game-card { background: var(--xui-bg-secondary); border: 1px solid var(--xui-border-secondary); box-shadow: var(--xui-shadow-surface); padding: var(--xui-space-m); border-radius: var(--page-radius-tile); display: flex; flex-direction: column; gap: var(--xui-space-m); min-width: 0; }
+.hud { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--xui-space-s); }
+.hud__item { display: flex; flex-direction: column; gap: var(--xui-space-xs); background: var(--xui-bg-primary); padding: var(--xui-space-s); border: 1px solid var(--xui-border-secondary); }
+.hud__label { font-size: 12px; line-height: 16px; color: var(--xui-content-secondary); }
+.hud__value { font-family: var(--xui-font-heading-b2c); font-weight: 700; font-size: 24px; line-height: 28px; font-variant-numeric: tabular-nums; }
+.hud__value--time.is-low { color: var(--xui-content-warning-primary); }
+.board { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--xui-space-s); }
+.cell { display: flex; flex-direction: column; gap: var(--xui-space-xs); min-width: 0; }
+.cell .xui-tag-label { max-width: 100%; }
+.tap {
+  aspect-ratio: 1 / 1; width: 100%; min-height: 64px;
+  background: var(--xui-bg-primary); color: var(--xui-content-primary);
+  border: 1px solid var(--xui-border-secondary); border-radius: var(--page-radius-tile);
+  box-shadow: var(--xui-shadow-surface); cursor: pointer; font: inherit;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform var(--page-duration-micro) ease, box-shadow var(--page-duration-micro) ease, border-color var(--page-duration-micro) ease;
+}
+.tap:disabled { cursor: default; }
+.tap.is-target { border: 2px solid var(--xui-border-brand); box-shadow: var(--xui-shadow-surface-hover); }
+.tap.is-hit { transform: scale(0.94); }
+.tap:focus-visible { outline: 2px solid var(--xui-border-brand); outline-offset: 2px; }
+.screen { display: flex; flex-direction: column; gap: var(--xui-space-m); }
+.screen__title { font-size: 20px; line-height: 24px; }
+.screen__text { color: var(--xui-content-secondary); }
+.big-score { font-family: var(--xui-font-heading-b2c); font-weight: 800; font-size: 48px; line-height: 58px; }
+.code { font-family: var(--xui-font-heading-b2c); font-weight: 700; font-size: 28px; line-height: 34px; letter-spacing: 1px; padding: var(--xui-space-m); background: var(--xui-bg-primary); border: 1px dashed var(--xui-border-brand-extra); text-align: center; word-break: break-all; }
+.hint { color: var(--xui-content-secondary); font-size: 14px; line-height: 18px; }
+.leader { display: flex; flex-direction: column; gap: var(--xui-space-s); }
+.leader ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--xui-space-xs); }
+.leader li { display: grid; grid-template-columns: 32px 1fr auto; gap: var(--xui-space-s); align-items: center; background: var(--xui-bg-primary); border: 1px solid var(--xui-border-secondary); padding: var(--xui-space-s) var(--xui-space-m); font-variant-numeric: tabular-nums; }
+.leader li.is-you { border-color: var(--xui-border-brand); }
+.leader__rank { color: var(--xui-content-secondary); }
+.leader__name { display: flex; gap: var(--xui-space-s); align-items: center; min-width: 0; overflow: hidden; }
+.leader__score { font-weight: 700; }
+
+/* FAQ */
+.faq { display: flex; flex-direction: column; gap: var(--xui-space-s); }
+.faq details { background: var(--xui-bg-primary); border: 1px solid var(--xui-border-secondary); }
+.faq summary { cursor: pointer; padding: var(--xui-space-m); font-weight: 500; display: flex; justify-content: space-between; gap: var(--xui-space-m); align-items: center; list-style: none; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary svg { width: 20px; height: 20px; flex-shrink: 0; transition: transform var(--page-duration-micro) ease; }
+.faq details[open] summary svg { transform: rotate(180deg); }
+.faq__answer { padding: 0 var(--xui-space-m) var(--xui-space-m); color: var(--xui-content-secondary); }
+
+/* Footer */
+.site-footer { padding: var(--xui-space-l) var(--xui-space-m); border-top: 1px solid var(--xui-border-secondary); display: flex; flex-wrap: wrap; gap: var(--xui-space-m); justify-content: space-between; align-items: center; color: var(--xui-content-secondary); font-size: 14px; line-height: 18px; }
+
+/* Entrance and hover motion */
+@keyframes xui-fadeSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.screen { animation: xui-fadeSlideUp var(--page-duration-macro) var(--page-easing) both; }
+.tile { transition: box-shadow var(--page-duration-micro) ease, transform var(--page-duration-micro) ease; }
+.tile:hover { box-shadow: var(--xui-shadow-surface-hover); transform: translateY(-2px); }
+
+@media (min-width: 768px) {
+  .site-header { grid-template-columns: auto 1fr auto; padding-inline: var(--xui-space-xl); }
+  .site-nav { grid-column: auto; justify-content: center; }
+  .band, .site-footer { padding-inline: var(--xui-space-xl); }
+  h1 { font-size: 40px; line-height: 48px; }
+  h2 { font-size: 32px; line-height: 38px; }
+  .hero__ctas { flex-direction: row; }
+}
+@media (min-width: 1024px) {
+  .booth { grid-template-columns: 3fr 2fr; align-items: start; }
+  .game { grid-template-columns: 3fr 2fr; align-items: start; }
+  .board { max-width: 420px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .tile:hover, .tap.is-hit { transform: none; }
+  .faq details[open] summary svg { transform: rotate(180deg); }
+}
+</style>
+</head>
+<body>
+<a class="skip xui-btn xui-btn--primary xui-btn--brand xui-btn--sm" href="#game">Skip to the booth game</a>
+
+<header class="site-header">
+  <a class="logo" href="#top" aria-label="Xsolla, back to top"><svg width="180" height="38" viewBox="0 0 180 38" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+<g clip-path="url(#clip_xsolla_logo)">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M101.783 3.66064C110.095 3.6607 116.831 10.3968 116.831 18.7091C116.831 27.0213 110.095 33.7576 101.783 33.7577C93.4705 33.7577 86.7344 27.0213 86.7344 18.7091C86.7344 10.3968 93.4705 3.66065 101.783 3.66064ZM101.783 9.42078C96.8911 9.42078 92.9245 13.1948 92.9245 18.7093C92.9245 24.2238 96.8911 27.998 101.783 27.998C106.676 27.9979 110.642 24.3117 110.642 18.7093C110.642 13.1069 106.676 9.42086 101.783 9.42078Z" fill="currentColor"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M149.42 29.1397L161.591 4.33103H165.892L180 33.088L144.568 33.0877L129.288 4.33103H136.101L149.42 29.1397ZM156.053 28.0371H171.277L163.665 11.852L156.053 28.0371Z" fill="currentColor"/>
+<path d="M137.404 33.0877H130.432L115.152 4.33103H121.965L137.404 33.0877Z" fill="currentColor"/>
+<path d="M49.8825 4.32576L56.6956 13.8421L63.4374 4.32576H70.5625L60.0523 18.4025L71.0694 33.0827H63.2843L56.3748 23.3824L49.1822 33.0827H41.9805L53.0237 18.8383L42.2925 4.32576H49.8825Z" fill="currentColor"/>
+<path d="M76.9238 12.7063L82.5196 19.5264C83.997 21.6339 84.3389 22.4699 84.3389 24.1651C84.3389 25.8603 83.7865 27.2201 82.6646 28.6218L79.1055 33.0783H71.5049L78.8058 24.5718L73.6637 18.3718C72.1066 16.2127 71.6234 14.6548 71.6233 13.2346C71.6233 11.8143 71.9094 10.3492 73.4717 8.45771L76.8386 4.32576H84.3517L76.9238 12.7063Z" fill="currentColor"/>
+<path d="M28.7501 16.5412V21.6609H23.6305V16.5412H28.7501Z" fill="currentColor"/>
+<path d="M15.83 16.536V21.6525H10.7134V16.536H15.83Z" fill="currentColor"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.887 0.00175794C23.6385 0.0809693 26.7841 2.62335 27.7719 6.07654L27.8556 6.36284C28.7164 9.24857 29.4851 9.87975 32.5857 10.4669L32.585 10.4673C36.4715 11.1989 39.4121 14.6107 39.4121 18.7097C39.4119 22.8386 36.4283 26.2708 32.4995 26.9679C29.3783 27.5684 28.664 28.2355 27.777 31.3229C26.7903 34.801 23.6157 37.3587 19.8349 37.4155C19.7918 37.4163 19.7486 37.4172 19.7053 37.4172C15.8647 37.4171 12.6269 34.8356 11.6323 31.3132C10.7465 28.2341 10.0305 27.5677 6.9126 26.9679C2.98394 26.2707 0.000186751 22.8386 0 18.7097C0 14.6108 2.9407 11.1989 6.82712 10.4673L6.82646 10.4669C9.92695 9.87976 10.6957 9.24856 11.5565 6.36284L11.64 6.07654C12.6436 2.56814 15.8746 9.9479e-05 19.7053 1.26543e-07C19.7061 1.4036e-07 19.7071 -1.64965e-07 19.7079 1.26543e-07L19.887 0.00175794ZM26.2085 13.4119C23.0669 13.4119 20.5201 15.9587 20.52 19.1004C20.52 22.242 23.0669 24.7889 26.2085 24.7889C29.3502 24.7889 31.897 22.2421 31.897 19.1004C31.897 15.9587 29.3502 13.4119 26.2085 13.4119ZM13.2704 13.4086C10.1306 13.4086 7.58522 15.9538 7.58518 19.0936C7.5852 22.2333 10.1306 24.7788 13.2704 24.7788C16.4101 24.7787 18.9553 22.2333 18.9554 19.0936C18.9553 15.9539 16.4101 13.4086 13.2704 13.4086Z" fill="currentColor"/>
+</g>
+<defs>
+<clipPath id="clip_xsolla_logo">
+<rect width="180" height="37.35" fill="white"/>
+</clipPath>
+</defs>
+</svg></a>
+  <button class="xui-btn xui-btn--secondary xui-btn--mono xui-btn--xs" id="theme-toggle" type="button" aria-pressed="false">Light theme</button>
+  <nav class="site-nav" aria-label="Sections">
+    <a href="#agenda">Agenda</a>
+    <a href="#speakers">Speakers</a>
+    <a href="#booth">Booth</a>
+    <a href="#game">Game</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+</header>
+
+<main id="top">
+  <section class="band hero" aria-labelledby="hero-title">
+    <span class="xui-tag xui-tag--sm xui-tag--brand-extra" id="hero-dates-tag">29 to 30 Oct 2026</span>
+    <h1 id="hero-title" style="margin-top: var(--xui-space-m)">Xsolla at gamescom asia 2026</h1>
+    <p class="hero__lead">Find us in Bangkok. Play the 30-second booth game, win a reward, and book time with our team.</p>
+    <div class="hero__facts" id="hero-facts"></div>
+    <div class="hero__ctas">
+      <a class="xui-btn xui-btn--primary xui-btn--brand xui-btn--md xui-btn--spread" href="#game" id="cta-play">
+        <span class="xui-btn__label">Play the booth game</span>
+        <svg class="xui-btn__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11.9983 19.0824L18.0706 13.0111L2.99927 13.0111L2.99927 11.0111L18.0706 11.0111L11.9993 4.93985L13.4133 3.52579L21.1915 11.304C21.5821 11.6945 21.5821 12.3277 21.1915 12.7182L13.4124 20.4965L11.9983 19.0824Z" fill="currentColor"/></svg>
+      </a>
+      <a class="xui-btn xui-btn--secondary xui-btn--mono xui-btn--md" href="#booth" id="cta-meet">Book a meeting</a>
+    </div>
+    <p class="source-note">Event name, dates, venue and booth: Xsolla Marketing event page (Confluence). Agenda, speakers and rewards below are samples.</p>
+  </section>
+
+  <section class="band band--alt" id="agenda" aria-labelledby="agenda-title">
+    <div class="band__head">
+      <h2 id="agenda-title">Agenda</h2>
+      <p class="band__lead">Sample sessions. Final times come later.</p>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Event day">
+      <button class="xui-btn xui-btn--primary xui-btn--brand xui-btn--sm" role="tab" id="tab-1" aria-selected="true" aria-controls="agenda-panel" data-day="1" type="button">Day 1</button>
+      <button class="xui-btn xui-btn--secondary xui-btn--mono xui-btn--sm" role="tab" id="tab-2" aria-selected="false" aria-controls="agenda-panel" data-day="2" tabindex="-1" type="button">Day 2</button>
+    </div>
+    <div id="agenda-panel" role="tabpanel" aria-labelledby="tab-1" class="grid"></div>
+  </section>
+
+  <section class="band" id="speakers" aria-labelledby="speakers-title">
+    <div class="band__head">
+      <h2 id="speakers-title">Speakers</h2>
+      <p class="band__lead">Sample speakers for this mockup.</p>
+    </div>
+    <div class="grid" id="speaker-list"></div>
+  </section>
+
+  <section class="band band--alt" id="booth" aria-labelledby="booth-title">
+    <div class="band__head">
+      <h2 id="booth-title">Visit Booth E21</h2>
+      <p class="band__lead" id="booth-lead">B2B Hall, QSNCC Bangkok. Talk to our team about web shops, payments and publishing.</p>
+    </div>
+    <div class="booth">
+      <div class="stack">
+        <h3>Booth quests</h3>
+        <div class="quests" id="quests">
+          <div class="xui-quest-card" data-quest="play">
+            <div class="xui-quest-card__icon-wrap"><svg class="quest-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14.5 2C16.433 2 18 3.567 18 5.5C18 6.03681 17.8791 6.54536 17.6631 7H21L21.1025 7.00488C21.6067 7.05621 22 7.48232 22 8V15C22 15.5177 21.6067 15.9438 21.1025 15.9951L21 16H20V21C20 21.5523 19.5523 22 19 22H5L4.89746 21.9951C4.39333 21.9438 4 21.5177 4 21V16H3C2.48232 16 2.05621 15.6067 2.00488 15.1025L2 15V8C2 7.44772 2.44772 7 3 7H6.33691C6.12093 6.54536 6 6.03681 6 5.5C6 3.567 7.567 2 9.5 2C10.4797 2 11.3647 2.40311 12 3.05176C12.6353 2.40311 13.5203 2 14.5 2ZM13 20H18V16H13V20ZM6 20H11V16H6V20ZM13 14H20V9H13V14ZM4 14H11V9H4V14ZM9.5 4C8.67157 4 8 4.67157 8 5.5C8 6.32843 8.67157 7 9.5 7H11V5.5C11 4.67157 10.3284 4 9.5 4ZM14.5 4C13.6716 4 13 4.67157 13 5.5V7H14.5C15.3284 7 16 6.32843 16 5.5C16 4.67157 15.3284 4 14.5 4Z" fill="currentColor"/></svg></div>
+            <div class="xui-quest-card__content">
+              <div class="xui-quest-card__text"><span class="xui-quest-card__title">Play the booth game</span><span class="xui-quest-card__subtitle" data-sub>To do. Score 10 to unlock</span></div>
+              <div class="xui-quest-card__status xui-quest-card__status--default"><div class="xui-quest-card__status-dot"></div></div>
+              <div class="xui-quest-card__trailing"><span class="xui-tag xui-tag--xs xui-tag--brand-extra">Reward</span></div>
+            </div>
+          </div>
+          <div class="xui-quest-card" data-quest="meet">
+            <div class="xui-quest-card__icon-wrap"><svg class="quest-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 14C8.20914 14 10 15.7909 10 18V21H8V18C8 16.8954 7.10457 16 6 16C4.89543 16 4 16.8954 4 18V21H2V18C2 15.7909 3.79086 14 6 14ZM15 21H13V18C13 16.8954 12.1046 16 11 16V14C13.2091 14 15 15.7909 15 18V21ZM20 12H22V14H20V16H18V14H16V12H18V10H20V12ZM6 5C8.20914 5 10 6.79086 10 9C10 11.2091 8.20914 13 6 13C3.79086 13 2 11.2091 2 9C2 6.79086 3.79086 5 6 5ZM11 5C13.2091 5 15 6.79086 15 9C15 11.2091 13.2091 13 11 13V11C12.1046 11 13 10.1046 13 9C13 7.89543 12.1046 7 11 7V5ZM6 7C4.89543 7 4 7.89543 4 9C4 10.1046 4.89543 11 6 11C7.10457 11 8 10.1046 8 9C8 7.89543 7.10457 7 6 7Z" fill="currentColor"/></svg></div>
+            <div class="xui-quest-card__content">
+              <div class="xui-quest-card__text"><span class="xui-quest-card__title">Book a meeting</span><span class="xui-quest-card__subtitle" data-sub>To do. Pick a slot below</span></div>
+              <div class="xui-quest-card__status xui-quest-card__status--default"><div class="xui-quest-card__status-dot"></div></div>
+            </div>
+          </div>
+          <div class="xui-quest-card" data-quest="visit">
+            <div class="xui-quest-card__icon-wrap"><svg class="quest-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 8.07057C13.6569 8.07057 15 9.42952 15 11.1059C15 12.7822 13.6569 14.1411 12 14.1411C10.3431 14.1411 9 12.7822 9 11.1059C9 9.42952 10.3431 8.07057 12 8.07057ZM12 10.0941C11.4477 10.0941 11 10.5471 11 11.1059C11 11.6646 11.4477 12.1176 12 12.1176C12.5523 12.1176 13 11.6646 13 11.1059C13 10.5471 12.5523 10.0941 12 10.0941Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C16.9706 2 21 6.07683 21 11.1059C21 12.5052 20.3848 13.9237 19.5967 15.1905C18.7962 16.4771 17.745 17.7218 16.7197 18.7968C15.6907 19.8758 14.6648 20.8077 13.8984 21.4685C13.5149 21.7992 13.1945 22.0635 12.9688 22.2461C12.8558 22.3375 12.7659 22.4089 12.7041 22.4576C12.6732 22.4819 12.6495 22.5009 12.6328 22.5139C12.6245 22.5203 12.6179 22.5252 12.6133 22.5287C12.611 22.5305 12.6074 22.5327 12.6074 22.5327L12.6055 22.5346C12.2485 22.809 11.7515 22.809 11.3945 22.5346L11.3926 22.5327C11.3926 22.5327 11.389 22.5305 11.3867 22.5287C11.3821 22.5252 11.3755 22.5203 11.3672 22.5139C11.3505 22.5009 11.3268 22.4819 11.2959 22.4576C11.2341 22.4089 11.1442 22.3375 11.0312 22.2461C10.8055 22.0635 10.4851 21.7992 10.1016 21.4685C9.33517 20.8077 8.30928 19.8758 7.28027 18.7968C6.255 17.7218 5.20379 16.4771 4.40332 15.1905C3.61524 13.9237 3 12.5052 3 11.1059C3 6.07683 7.02944 2 12 2ZM12 4.02352C8.13401 4.02352 5 7.1944 5 11.1059C5 11.9416 5.38486 12.9684 6.09668 14.1125C6.79621 15.2369 7.74501 16.3698 8.71973 17.3918C9.69057 18.4098 10.6649 19.2957 11.3984 19.9282C11.6247 20.1233 11.8282 20.2929 12 20.435C12.1718 20.2929 12.3753 20.1233 12.6016 19.9282C13.3351 19.2957 14.3094 18.4098 15.2803 17.3918C16.255 16.3698 17.2038 15.2369 17.9033 14.1125C18.6151 12.9684 19 11.9416 19 11.1059C19 7.1944 15.866 4.02352 12 4.02352Z" fill="currentColor"/></svg></div>
+            <div class="xui-quest-card__content">
+              <div class="xui-quest-card__text"><span class="xui-quest-card__title">Say hi at Booth E21</span><span class="xui-quest-card__subtitle" data-sub>To do. Staff confirm in person</span></div>
+              <div class="xui-quest-card__status xui-quest-card__status--default"><div class="xui-quest-card__status-dot"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <form class="tile stack" id="meet-form" novalidate aria-labelledby="meet-title">
+        <h3 id="meet-title">Book a meeting</h3>
+        <div class="field">
+          <label for="f-name">Your name</label>
+          <input id="f-name" name="name" autocomplete="name" aria-describedby="f-name-err" required aria-required="true">
+          <span class="field-error" id="f-name-err" role="alert"></span>
+        </div>
+        <div class="field">
+          <label for="f-company">Studio or company (optional)</label>
+          <input id="f-company" name="company" autocomplete="organization">
+        </div>
+        <div class="field">
+          <label for="f-slot">Time slot</label>
+          <select id="f-slot" name="slot"></select>
+        </div>
+        <button class="xui-btn xui-btn--primary xui-btn--brand xui-btn--md xui-btn--full-width xui-btn--spread" type="submit">
+          <span class="xui-btn__label">Send request</span>
+          <svg class="xui-btn__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11.9983 19.0824L18.0706 13.0111L2.99927 13.0111L2.99927 11.0111L18.0706 11.0111L11.9993 4.93985L13.4133 3.52579L21.1915 11.304C21.5821 11.6945 21.5821 12.3277 21.1915 12.7182L13.4124 20.4965L11.9983 19.0824Z" fill="currentColor"/></svg>
+        </button>
+        <div role="status" id="meet-status"></div>
+        <p class="hint">Demo only. Nothing is sent.</p>
+      </form>
+    </div>
+  </section>
+
+  <section class="band band--accent" id="game" aria-labelledby="game-title">
+    <div class="band__head">
+      <h2 id="game-title">Booth game: Tap the tile</h2>
+      <p class="band__lead">30 seconds. Tap the lit tile as often as you can. Score 10 or more to claim a reward at Booth E21.</p>
+    </div>
+    <div class="game">
+      <div class="game-card">
+        <div class="hud" aria-label="Game stats">
+          <div class="hud__item"><span class="hud__label" id="lbl-score">Score</span><span class="hud__value" id="score">0</span></div>
+          <div class="hud__item"><span class="hud__label" id="lbl-time">Time left</span><span class="hud__value hud__value--time" id="time">30</span></div>
+          <div class="hud__item"><span class="hud__label" id="lbl-best">Best</span><span class="hud__value" id="best">0</span></div>
+        </div>
+
+        <div class="screen" id="screen-start">
+          <h3 class="screen__title">Ready?</h3>
+          <p class="screen__text">Tap the lit tile. On a keyboard, press keys 1 to 9 or Tab to a tile and press Enter.</p>
+          <button class="xui-btn xui-btn--primary xui-btn--brand xui-btn--md xui-btn--full-width xui-btn--spread" id="btn-start" type="button">
+            <span class="xui-btn__label">Start game</span>
+            <svg class="xui-btn__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11.9983 19.0824L18.0706 13.0111L2.99927 13.0111L2.99927 11.0111L18.0706 11.0111L11.9993 4.93985L13.4133 3.52579L21.1915 11.304C21.5821 11.6945 21.5821 12.3277 21.1915 12.7182L13.4124 20.4965L11.9983 19.0824Z" fill="currentColor"/></svg>
+          </button>
+        </div>
+
+        <div class="screen" id="screen-end" hidden>
+          <h3 class="screen__title" id="end-title" tabindex="-1">Time's up</h3>
+          <div class="big-score" id="end-score">0</div>
+          <p class="screen__text" id="end-text"></p>
+          <button class="xui-btn xui-btn--primary xui-btn--brand-extra xui-btn--md xui-btn--full-width xui-btn--spread" id="btn-claim" type="button">
+            <span class="xui-btn__label">Claim reward</span>
+            <svg class="xui-btn__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11.9983 19.0824L18.0706 13.0111L2.99927 13.0111L2.99927 11.0111L18.0706 11.0111L11.9993 4.93985L13.4133 3.52579L21.1915 11.304C21.5821 11.6945 21.5821 12.3277 21.1915 12.7182L13.4124 20.4965L11.9983 19.0824Z" fill="currentColor"/></svg>
+          </button>
+          <button class="xui-btn xui-btn--secondary xui-btn--mono xui-btn--md xui-btn--full-width" id="btn-replay" type="button">Play again</button>
+        </div>
+
+        <div class="screen" id="screen-claimed" hidden>
+          <h3 class="screen__title" id="claimed-title" tabindex="-1">Reward unlocked</h3>
+          <span class="xui-tag xui-tag--sm xui-tag--success"><svg class="xui-tag__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21.795 7.77471C22.1855 8.16524 22.1855 8.7984 21.795 9.18893L11.1884 19.7955C10.7979 20.1861 10.1647 20.1861 9.77419 19.7955L2.70696 12.7283C2.31643 12.3378 2.31643 11.7046 2.70696 11.3141L5.53538 8.48565C5.92591 8.09513 6.55907 8.09513 6.9496 8.48565L10.4851 12.0212L17.5562 4.95012C17.9467 4.5596 18.5799 4.5596 18.9704 4.95012L21.795 7.77471Z" fill="currentColor"/></svg>Claimed</span>
+          <p class="screen__text" id="claimed-text"></p>
+          <div class="code" id="claim-code" aria-label="Reward code"></div>
+          <p class="hint">Show this at Booth E21. Sample code, not a real reward.</p>
+          <button class="xui-btn xui-btn--secondary xui-btn--mono xui-btn--md xui-btn--full-width" id="btn-replay-2" type="button">Play again</button>
+        </div>
+
+        <div class="board" id="board" role="group" aria-label="Game tiles, keys 1 to 9"></div>
+
+        <p class="sr-only" role="status" aria-live="polite" id="game-live"></p>
+      </div>
+
+      <section class="leader" aria-labelledby="leader-title">
+        <h3 id="leader-title">Today's leaderboard</h3>
+        <p class="hint">Sample scores. Your best score joins after a round.</p>
+        <ol id="leaderboard"></ol>
+      </section>
+    </div>
+  </section>
+
+  <section class="band" id="faq" aria-labelledby="faq-title">
+    <div class="band__head"><h2 id="faq-title">FAQ</h2></div>
+    <div class="faq" id="faq-list"></div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>Concept mockup. Event name, dates and venue from internal Confluence (unconfirmed). Sessions, speakers, rewards and leaderboard are placeholders.</p>
+  <button class="xui-btn xui-btn--secondary xui-btn--mono xui-btn--xs" id="btn-reset" type="button">Reset demo</button>
+</footer>
+
+<script>
+const EVENT_DATA = {
+  "_sample": "SAMPLE DATA. Sessions, speakers, leaderboard and reward are fake. Event name, dates, venue and booth come from Confluence MAR 24147689473.",
+  "event": {
+    "name": "gamescom asia x Thailand Game Show 2026",
+    "dates": "29 to 30 October 2026",
+    "venue": "Queen Sirikit National Convention Center (QSNCC), Bangkok",
+    "booth": "Booth E21, B2B Hall"
+  },
+  "sessions": [
+    {
+      "id": "s1",
+      "day": 1,
+      "time": "10:00",
+      "title": "Sample talk: Going direct with a mobile web shop",
+      "speakerId": "p1",
+      "room": "Sample Stage A"
+    },
+    {
+      "id": "s2",
+      "day": 1,
+      "time": "13:30",
+      "title": "Sample panel: Payments that fit Southeast Asia",
+      "speakerId": "p2",
+      "room": "Sample Stage B"
+    },
+    {
+      "id": "s3",
+      "day": 1,
+      "time": "16:00",
+      "title": "Sample demo: Live at the Xsolla booth",
+      "speakerId": "p3",
+      "room": "Booth E21"
+    },
+    {
+      "id": "s4",
+      "day": 2,
+      "time": "11:00",
+      "title": "Sample talk: Launch and grow beyond your home market",
+      "speakerId": "p4",
+      "room": "Sample Stage A"
+    },
+    {
+      "id": "s5",
+      "day": 2,
+      "time": "14:00",
+      "title": "Sample workshop: Partner Network basics",
+      "speakerId": "p1",
+      "room": "Sample Room 3"
+    }
+  ],
+  "speakers": [
+    {
+      "id": "p1",
+      "name": "Sample Speaker A",
+      "role": "Head of Partnerships (sample)"
+    },
+    {
+      "id": "p2",
+      "name": "Sample Speaker B",
+      "role": "Payments Lead (sample)"
+    },
+    {
+      "id": "p3",
+      "name": "Sample Speaker C",
+      "role": "Solutions Engineer (sample)"
+    },
+    {
+      "id": "p4",
+      "name": "Sample Speaker D",
+      "role": "Studio Founder (sample)"
+    }
+  ],
+  "leaderboard": [
+    {
+      "name": "PLAYER_01",
+      "score": 38
+    },
+    {
+      "name": "PLAYER_02",
+      "score": 33
+    },
+    {
+      "name": "PLAYER_03",
+      "score": 29
+    },
+    {
+      "name": "PLAYER_04",
+      "score": 24
+    },
+    {
+      "name": "PLAYER_05",
+      "score": 18
+    }
+  ],
+  "game": {
+    "seconds": 30,
+    "grid": 9,
+    "rewardMinScore": 10,
+    "reward": "Sample booth merch item"
+  },
+  "meetingSlots": [
+    "29 Oct 11:00",
+    "29 Oct 15:00",
+    "30 Oct 10:30",
+    "30 Oct 14:30"
+  ]
+};
+
+(function () {
+  'use strict';
+  const D = EVENT_DATA;
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const speakerById = Object.fromEntries(D.speakers.map((p) => [p.id, p]));
+  const chevron = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12.7178 15.7808C12.3273 16.1713 11.6942 16.1713 11.3036 15.7808L4.30371 8.78084L5.71777 7.36678L12.0107 13.6597L18.3037 7.36678L19.7178 8.78084L12.7178 15.7808Z" fill="currentColor"/></svg>';
+
+  function label(series, number, name, aria) {
+    return '<div class="xui-tag-label" role="group" aria-label="' + esc(aria) + '">' +
+      '<span class="xui-tag-label__id"><span class="xui-tag-label__id-series">' + esc(series) + '</span><span class="xui-tag-label__id-number">' + esc(number) + '</span></span>' +
+      (name ? '<span class="xui-tag-label__name">' + esc(name) + '</span>' : '') + '</div>';
+  }
+
+  /* Hero facts */
+  const facts = [['01', 'Dates', D.event.dates], ['02', 'Venue', D.event.venue], ['03', 'Booth', D.event.booth]];
+  $('#hero-facts').innerHTML = facts.map((f) =>
+    '<div class="tile-wrap">' + label(f[0], '', f[1], f[1]) + '<div class="tile hero__fact">' + esc(f[2]) + '</div></div>').join('');
+
+  /* Agenda */
+  function renderAgenda(day) {
+    const rows = D.sessions.filter((s) => s.day === day);
+    const panel = $('#agenda-panel');
+    panel.setAttribute('aria-labelledby', 'tab-' + day);
+    if (!rows.length) { panel.innerHTML = '<p class="empty">No sessions this day.</p>'; return; }
+    panel.innerHTML = rows.map((s) => {
+      const sp = speakerById[s.speakerId];
+      return '<div class="tile-wrap">' + label('D' + s.day, s.time, s.room, 'Day ' + s.day + ', ' + s.time + ', ' + s.room) +
+        '<article class="tile"><h3 style="font-size:16px;line-height:20px">' + esc(s.title) + '</h3>' +
+        '<p class="tile__meta">' + esc(sp ? sp.name + ', ' + sp.role : '') + '</p></article></div>';
+    }).join('');
+  }
+  const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+  function selectTab(tab, focus) {
+    tabs.forEach((t) => {
+      const on = t === tab;
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+      t.classList.toggle('xui-btn--primary', on); t.classList.toggle('xui-btn--brand', on);
+      t.classList.toggle('xui-btn--secondary', !on); t.classList.toggle('xui-btn--mono', !on);
+    });
+    if (focus) tab.focus();
+    renderAgenda(Number(tab.dataset.day));
+  }
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => selectTab(t, false));
+    t.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        selectTab(tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length], true);
+      }
+    });
+  });
+  renderAgenda(1);
+
+  /* Speakers */
+  $('#speaker-list').innerHTML = D.speakers.map((p, i) =>
+    '<div class="tile-wrap">' + label('SPK', String.fromCharCode(65 + i), p.role, 'Speaker, ' + p.role) +
+    '<div class="tile"><h3 style="font-size:16px;line-height:20px">' + esc(p.name) + '</h3><p class="tile__meta">Sample profile</p></div></div>').join('');
+
+  /* FAQ */
+  const faqs = [
+    ['Where is the Xsolla booth?', 'Booth E21 in the B2B Hall at QSNCC, Bangkok.'],
+    ['How do I get the reward?', 'Score 10 or more in the booth game, tap Claim reward, and show the code at Booth E21. Rewards are samples in this mockup.'],
+    ['Can I book a meeting on the spot?', 'Yes. Use the form in the booth section or ask anyone on the team at the booth.'],
+    ['Does the game need an account?', 'No. Play straight away in your browser. Nothing is saved after you close the page.']
+  ];
+  $('#faq-list').innerHTML = faqs.map((f) =>
+    '<details><summary>' + esc(f[0]) + chevron + '</summary><p class="faq__answer">' + esc(f[1]) + '</p></details>').join('');
+
+  /* Quests */
+  function setQuest(key, done, text) {
+    const q = document.querySelector('[data-quest="' + key + '"]');
+    const st = q.querySelector('.xui-quest-card__status');
+    st.classList.toggle('xui-quest-card__status--success', done);
+    st.classList.toggle('xui-quest-card__status--default', !done);
+    q.querySelector('[data-sub]').textContent = text;
+  }
+
+  /* Meeting form */
+  const slotSel = $('#f-slot');
+  slotSel.innerHTML = D.meetingSlots.map((s) => '<option>' + esc(s) + '</option>').join('');
+  const form = $('#meet-form');
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $('#f-name').value.trim();
+    if (!name) {
+      $('#f-name-err').textContent = 'Add your name.';
+      $('#f-name').setAttribute('aria-invalid', 'true');
+      $('#f-name').focus();
+      return;
+    }
+    $('#f-name-err').textContent = '';
+    $('#f-name').removeAttribute('aria-invalid');
+    $('#meet-status').innerHTML = '<div class="form-ok"><span class="xui-tag xui-tag--sm xui-tag--success">Sent</span><span>Thanks, ' + esc(name) + '. Request for ' + esc(slotSel.value) + ' sent (demo).</span></div>';
+    setQuest('meet', true, 'Done. ' + slotSel.value);
+  });
+
+  /* Game */
+  const SECONDS = D.game.seconds, CELLS = D.game.grid, MIN = D.game.rewardMinScore;
+  const board = $('#board');
+  board.innerHTML = Array.from({ length: CELLS }, (_, i) =>
+    '<div class="cell">' + label('KEY', String(i + 1), '', 'Key ' + (i + 1)) +
+    '<button class="tap" type="button" data-i="' + i + '" aria-label="Tile ' + (i + 1) + '" disabled></button></div>').join('');
+  const taps = Array.from(board.querySelectorAll('.tap'));
+  const G = { state: 'idle', score: 0, best: 0, target: -1, endAt: 0, timer: null, said: {} };
+  const live = $('#game-live');
+  const say = (t) => { live.textContent = t; };
+
+  function show(id) {
+    ['#screen-start', '#screen-end', '#screen-claimed'].forEach((s) => { $(s).hidden = s !== id; });
+    board.hidden = id === '#screen-end' || id === '#screen-claimed';
+  }
+  function setTarget() {
+    let n;
+    do { n = Math.floor(Math.random() * CELLS); } while (n === G.target);
+    if (G.target >= 0) {
+      const old = taps[G.target];
+      old.classList.remove('is-target'); old.innerHTML = ''; old.setAttribute('aria-label', 'Tile ' + (G.target + 1));
+    }
+    G.target = n;
+    const t = taps[n];
+    t.classList.add('is-target');
+    t.innerHTML = '<span class="xui-tag xui-tag--xs xui-tag--brand">Tap</span>';
+    t.setAttribute('aria-label', 'Tile ' + (n + 1) + ', lit');
+    board.dataset.target = String(n + 1);
+  }
+  function clearTarget() {
+    taps.forEach((t, i) => { t.classList.remove('is-target', 'is-hit'); t.innerHTML = ''; t.setAttribute('aria-label', 'Tile ' + (i + 1)); });
+    G.target = -1; delete board.dataset.target;
+  }
+  function renderHud(left) {
+    $('#score').textContent = G.score;
+    $('#best').textContent = G.best;
+    $('#time').textContent = left;
+    $('#time').classList.toggle('is-low', left <= 5 && G.state === 'playing');
+  }
+  function start() {
+    clearInterval(G.timer);
+    G.state = 'playing'; G.score = 0; G.said = {};
+    G.endAt = performance.now() + SECONDS * 1000;
+    show(null);
+    taps.forEach((t) => { t.disabled = false; });
+    setTarget();
+    renderHud(SECONDS);
+    say('Game started. ' + SECONDS + ' seconds. Lit tile is ' + (G.target + 1) + '.');
+    taps[G.target].focus();
+    G.timer = setInterval(tick, 100);
+  }
+  function tick() {
+    const left = Math.max(0, Math.ceil((G.endAt - performance.now()) / 1000));
+    renderHud(left);
+    if ([20, 10, 5].includes(left) && !G.said[left]) { G.said[left] = true; say(left + ' seconds left. Score ' + G.score + '.'); }
+    if (left <= 0) finish();
+  }
+  function hit(i) {
+    if (G.state !== 'playing') return;
+    if (i === G.target) {
+      G.score++;
+      const t = taps[i];
+      t.classList.add('is-hit');
+      setTimeout(() => t.classList.remove('is-hit'), 120);
+      setTarget();
+      $('#score').textContent = G.score;
+      if (document.activeElement && document.activeElement.classList.contains('tap')) taps[G.target].focus();
+    }
+  }
+  function finish() {
+    clearInterval(G.timer);
+    G.state = 'ended';
+    clearTarget();
+    taps.forEach((t) => { t.disabled = true; });
+    G.best = Math.max(G.best, G.score);
+    renderHud(0);
+    renderLeaderboard();
+    $('#end-score').textContent = G.score;
+    const ok = G.score >= MIN;
+    $('#end-text').textContent = ok
+      ? 'Nice run. You scored ' + G.score + '. Claim your reward and show it at Booth E21.'
+      : 'You scored ' + G.score + '. Score ' + MIN + ' to unlock the reward. Try again.';
+    $('#btn-claim').disabled = !ok;
+    setQuest('play', ok, ok ? 'Done. Reward unlocked' : 'Best ' + G.best + '. Score ' + MIN + ' to unlock');
+    show('#screen-end');
+    say("Time's up. Score " + G.score + '.');
+    $('#end-title').focus();
+  }
+  function claim() {
+    if (G.state !== 'ended' || G.score < MIN) return;
+    G.state = 'claimed';
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let c = ''; for (let k = 0; k < 4; k++) c += chars[Math.floor(Math.random() * chars.length)];
+    $('#claim-code').textContent = 'SAMPLE-' + c;
+    $('#claimed-text').textContent = D.game.reward + ' for a score of ' + G.score + '.';
+    show('#screen-claimed');
+    say('Reward unlocked. Code SAMPLE-' + c + '.');
+    $('#claimed-title').focus();
+  }
+  function renderLeaderboard() {
+    const rows = D.leaderboard.map((r) => ({ name: r.name, score: r.score, you: false }));
+    if (G.best > 0 || G.state !== 'idle') rows.push({ name: 'You', score: G.best, you: true });
+    rows.sort((a, b) => b.score - a.score || (a.you ? -1 : 1));
+    $('#leaderboard').innerHTML = rows.map((r, i) =>
+      '<li class="' + (r.you ? 'is-you' : '') + '"><span class="leader__rank">' + (i + 1) + '</span>' +
+      '<span class="leader__name">' + (r.you ? '<span class="xui-tag xui-tag--xs xui-tag--brand">You</span>' : esc(r.name)) + '</span>' +
+      '<span class="leader__score">' + r.score + '</span></li>').join('');
+  }
+
+  taps.forEach((t, i) => t.addEventListener('click', () => hit(i)));
+  board.addEventListener('keydown', (e) => {
+    const i = taps.indexOf(document.activeElement);
+    if (i < 0) return;
+    const moves = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 3, ArrowUp: -3 };
+    if (e.key in moves) {
+      e.preventDefault();
+      const n = i + moves[e.key];
+      if (n >= 0 && n < CELLS) taps[n].focus();
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (G.state !== 'playing' || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (/^[1-9]$/.test(e.key) && Number(e.key) <= CELLS) { e.preventDefault(); hit(Number(e.key) - 1); }
+  });
+  $('#btn-start').addEventListener('click', start);
+  $('#btn-replay').addEventListener('click', start);
+  $('#btn-replay-2').addEventListener('click', start);
+  $('#btn-claim').addEventListener('click', claim);
+
+  function resetDemo() {
+    clearInterval(G.timer);
+    Object.assign(G, { state: 'idle', score: 0, best: 0, target: -1 });
+    clearTarget();
+    taps.forEach((t) => { t.disabled = true; });
+    renderHud(SECONDS);
+    renderLeaderboard();
+    show('#screen-start');
+    form.reset();
+    $('#f-name-err').textContent = '';
+    $('#meet-status').innerHTML = '';
+    setQuest('play', false, 'To do. Score ' + MIN + ' to unlock');
+    setQuest('meet', false, 'To do. Pick a slot below');
+    selectTab(tabs[0], false);
+    document.querySelectorAll('#faq-list details').forEach((d) => { d.open = false; });
+    say('Demo reset.');
+  }
+  $('#btn-reset').addEventListener('click', resetDemo);
+  renderHud(SECONDS);
+  renderLeaderboard();
+
+  /* Theme */
+  const tt = $('#theme-toggle');
+  tt.addEventListener('click', () => {
+    const light = document.documentElement.dataset.theme !== 'light';
+    document.documentElement.dataset.theme = light ? 'light' : 'dark';
+    tt.setAttribute('aria-pressed', String(light));
+    tt.textContent = light ? 'Dark theme' : 'Light theme';
+  });
+})();
+</script>
+</body>
+</html>
