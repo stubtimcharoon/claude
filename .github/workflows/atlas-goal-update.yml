@@ -21,8 +21,8 @@ jobs:
     env:
       # Subscription auth (preferred). Generate locally with `claude setup-token`.
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      # API-credit auth (fallback). Leave unset if the org does not allow API credits.
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # API-credit auth, only used when no OAuth token is set (Claude Code prefers the API key when both exist).
+      ANTHROPIC_API_KEY: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}
       ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
       ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
       ATLASSIAN_SITE: ${{ secrets.ATLASSIAN_SITE }}

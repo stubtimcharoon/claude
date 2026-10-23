@@ -41,7 +41,7 @@ Q_LAST_UPDATE = (
     "{id updates(first:1){edges{node{creationDate}}}}}"
 )
 M_CREATE_UPDATE = (
-    "mutation($input:TownsquareGoalsCreateUpdateInput!){"
+    "mutation CreateUpdate($input:TownsquareGoalsCreateUpdateInput!){"
     'goals_createUpdate(input:$input)@optIn(to:"Townsquare")'
     "{success errors{message} update{id url creationDate}}}"
 )
