@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "xla-holiday-calendar/doors.schema.json",
+  "title": "XLA Holiday Calendar door data file",
+  "type": "object",
+  "required": ["doors"],
+  "additionalProperties": false,
+  "properties": {
+    "_note": {
+      "type": "string",
+      "description": "Free-text note about the file, for example that it holds sample data."
+    },
+    "doors": {
+      "type": "array",
+      "maxItems": 31,
+      "items": { "$ref": "#/$defs/door" }
+    }
+  },
+  "$defs": {
+    "door": {
+      "type": "object",
+      "required": ["day", "date", "partner", "game", "bundle_name", "items", "tier", "claim_deadline_pt", "state"],
+      "additionalProperties": false,
+      "properties": {
+        "day": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 31,
+          "description": "Day of December. Must match the day in date."
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^2026-12-(0[1-9]|[12][0-9]|3[01])$",
+          "description": "ISO 8601 date (YYYY-MM-DD) in December 2026."
+        },
+        "partner": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Donating partner. Sample data uses fake names."
+        },
+        "game": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Game the bundle is for. Illustrative only in mockups."
+        },
+        "bundle_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Items in the bundle, for example virtual currency, skins, a key, beta access."
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["standard", "grand"]
+        },
+        "claim_deadline_pt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}-0[78]:00$",
+          "description": "Claim deadline in Pacific Time with explicit offset (-08:00 in December), normally 23:59:59 on date."
+        },
+        "state": {
+          "type": "string",
+          "enum": ["locked", "available", "claimed", "missed"]
+        }
+      }
+    }
+  }
+}

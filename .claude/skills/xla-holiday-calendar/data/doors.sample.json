@@ -1,0 +1,93 @@
+{
+  "_note": "SAMPLE DATA ONLY. Partners, games and bundles are fictional and illustrative. No partner is confirmed. States are a snapshot as if today were Dec 10, 2026.",
+  "doors": [
+    {
+      "day": 1,
+      "date": "2026-12-01",
+      "partner": "Sample Studio Northwind",
+      "game": "Illustrative Game A",
+      "bundle_name": "Frost Starter Pack",
+      "items": ["500 sample gems", "Snowflake avatar frame"],
+      "tier": "standard",
+      "claim_deadline_pt": "2026-12-01T23:59:59-08:00",
+      "state": "claimed"
+    },
+    {
+      "day": 2,
+      "date": "2026-12-02",
+      "partner": "Sample Games Bluepeak",
+      "game": "Illustrative Game B",
+      "bundle_name": "Winter Scout Bundle",
+      "items": ["Scout skin", "3 XP boosters"],
+      "tier": "standard",
+      "claim_deadline_pt": "2026-12-02T23:59:59-08:00",
+      "state": "missed"
+    },
+    {
+      "day": 9,
+      "date": "2026-12-09",
+      "partner": "Sample Interactive Ember",
+      "game": "Illustrative Game C",
+      "bundle_name": "Hearth Bundle",
+      "items": ["1,000 sample coins", "Lantern emote"],
+      "tier": "standard",
+      "claim_deadline_pt": "2026-12-09T23:59:59-08:00",
+      "state": "claimed"
+    },
+    {
+      "day": 10,
+      "date": "2026-12-10",
+      "partner": "Sample Studio Quartz",
+      "game": "Illustrative Game D",
+      "bundle_name": "Crystal Beta Pass",
+      "items": ["Closed beta access", "Crystal weapon charm"],
+      "tier": "standard",
+      "claim_deadline_pt": "2026-12-10T23:59:59-08:00",
+      "state": "available"
+    },
+    {
+      "day": 11,
+      "date": "2026-12-11",
+      "partner": "Sample Brand Pinecone",
+      "game": "Illustrative Game E",
+      "bundle_name": "Pine Gift Box",
+      "items": ["Brand gift code", "Pine banner"],
+      "tier": "standard",
+      "claim_deadline_pt": "2026-12-11T23:59:59-08:00",
+      "state": "locked"
+    },
+    {
+      "day": 24,
+      "date": "2026-12-24",
+      "partner": "Sample Games Aurora",
+      "game": "Illustrative Game F",
+      "bundle_name": "Grand Eve Drop",
+      "items": ["Legendary sample skin", "5,000 sample gems", "Gold profile badge"],
+      "tier": "grand",
+      "claim_deadline_pt": "2026-12-24T23:59:59-08:00",
+      "state": "locked"
+    },
+    {
+      "day": 25,
+      "date": "2026-12-25",
+      "partner": "Sample Studio Evergreen",
+      "game": "Illustrative Game G",
+      "bundle_name": "Grand Holiday Drop",
+      "items": ["Sample game key", "Holiday mount", "Exclusive title"],
+      "tier": "grand",
+      "claim_deadline_pt": "2026-12-25T23:59:59-08:00",
+      "state": "locked"
+    },
+    {
+      "day": 31,
+      "date": "2026-12-31",
+      "partner": "Sample Interactive Midnight",
+      "game": "Illustrative Game H",
+      "bundle_name": "Grand Countdown Drop",
+      "items": ["Fireworks emote", "10,000 sample coins", "New Year avatar frame"],
+      "tier": "grand",
+      "claim_deadline_pt": "2026-12-31T23:59:59-08:00",
+      "state": "locked"
+    }
+  ]
+}
