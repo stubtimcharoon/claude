@@ -1,8 +1,10 @@
 # Figma Make Stage Templates
 
-Fill every `{{placeholder}}`. Keep each filled prompt under ~150 words. The `KEEP:` block carries forward everything locked by earlier stages. No em-dashes.
+Fill every `{{placeholder}}`. Keep each filled prompt at 150 words max (brand blocks and the Stage 2 seed JSON do not count). The `KEEP:` block carries forward everything locked by earlier stages. No em-dashes.
 
-`{{brand_block}}`: for Xsolla or x.la projects, paste the "Brand constraints block" from SKILL.md verbatim. For any other project, delete the placeholder line.
+`{{brand_block}}`: for Xsolla or x.la projects, paste `references/xsolla-brand-block.txt` verbatim, then the project's own `brand-block.txt` verbatim if it has one. For any other project, delete the placeholder line. It appears in every stage and in the fix prompt.
+
+Single-page variant: use the Stage 1, 3 and 4 alternates at the end of this file. Stages 2, 5 and 6 are shared (read "screens" as "sections").
 
 ## Stage 1: Shell, layout and tokens
 
@@ -14,11 +16,13 @@ Build only the app shell. No content screens yet.
 - Layout: {{layout_description}} (for example left sidebar nav, top bar, main content area).
 - Nav items: {{nav_items}}.
 - Define these as CSS variables and use only them:
-  primary {{color_primary}}, surface {{color_surface}}, text {{color_text}}, muted {{color_muted}}, accent {{color_accent}}.
-  Font {{font_family}}; sizes {{type_scale}}; radius {{radius}}; spacing unit {{spacing_unit}}.
+  {{color_roles}}
+  Font {{font_family}} (fallback {{font_fallback}}); sizes {{type_scale}}; radius {{radius}}; spacing unit {{spacing_unit}}.
 - Do not add any other colors or fonts.
 - Main area shows a placeholder "Content" label for now.
 ```
+
+`{{color_roles}}`: one `role #hex` pair per color the token source defines, comma separated, no fixed count. For XUI include at least canvas, surface, text, muted, primary, text on primary, focus border, tile border, success.
 
 ## Stage 2: Seed data
 
@@ -63,10 +67,13 @@ Make these demo flows clickable end to end:
 {{more_flows}}
 Add states using existing tokens only:
 - Empty: {{empty_state_copy}} when a list has no items.
-- Loading: skeleton for {{loading_ms}} ms on screen change.
+- Loading: skeleton for {{loading_ms}} ms on screen change (delete this line if no view changes).
+{{timer_rule}}
 - Hover and selected: {{hover_selected_rule}}.
 - Error: {{error_state_copy}}.
 ```
+
+`{{timer_rule}}`: empty, or `- Timer: {{duration}} s, simulated on the client, starts on {{trigger}}; at zero show {{end_state}}. {{scoring_rule}}. Countdowns count from demoNow in {{data_constant_name}}.`
 
 ## Stage 5: Responsive and accessibility
 
@@ -74,7 +81,7 @@ Add states using existing tokens only:
 KEEP: Everything from previous steps: tokens, data, screens, flows and states. Change layout only at the breakpoints below.
 {{brand_block}}
 
-Responsive:
+Responsive (must work at 360, 390, 768 and 1280 px, no horizontal scroll at any width):
 - Under 768 px: {{mobile_rule}} (for example sidebar collapses to a bottom tab bar).
 - 768 to 1279 px: {{tablet_rule}}.
 - 1280 px and up: current layout.
@@ -83,6 +90,7 @@ Accessibility:
 - Logical tab order through each flow.
 - Labels on every icon button and input.
 - Text contrast at least 4.5:1; if a token pair fails, tell me instead of changing the color.
+- Under prefers-reduced-motion: no animation or transitions; timers still update their text.
 ```
 
 ## Stage 6: Polish
@@ -96,14 +104,62 @@ Polish for a live demo to {{audience}}:
 - Even spacing on the {{spacing_unit}} grid.
 - Subtle transitions ({{transition_ms}} ms) on screen change and selection.
 - Add a small "Reset demo" control in {{reset_location}} that restores the initial state.
+- Footer disclaimer: {{disclaimer}} (must match the facts table: name what is placeholder).
 - Page title: {{page_title}}.
 ```
 
 ## Fix prompt
 
 ```
+KEEP:
+{{brand_block}}
 Change only: {{component_or_screen}}. It currently {{current_behavior}}; it should {{expected_behavior}}.
 Keep everything else exactly as it is: layout, tokens, data, screens, interactions.
 Do not refactor, rename or restyle anything else.
+```
+
+## Single-page variant: Stage 1 (page frame and tokens)
+
+```
+KEEP: This is a {{product_name}} page for {{audience}}. Goal: {{goal}}.
 {{brand_block}}
+
+Build only the page frame. No section content yet.
+- Sticky header with anchor links: {{anchor_links}}.
+- Empty sections in this order, each with an id matching its link: {{section_order}}.
+- Define these as CSS variables and use only them:
+  {{color_roles}}
+  Font {{font_family}} (fallback {{font_fallback}}); sizes {{type_scale}}; radius {{radius}}; spacing unit {{spacing_unit}}.
+- Do not add any other colors or fonts.
+```
+
+## Single-page variant: Stage 3 (sections and widgets)
+
+```
+KEEP: Header, section order, CSS variables, and the {{data_constant_name}} constant. Do not edit the data or the tokens.
+{{brand_block}}
+
+Replace the debug list. Fill each section from {{data_constant_name}}:
+1. {{section_1_name}}: {{section_1_content}}
+2. {{section_2_name}}: {{section_2_content}}
+{{more_sections}}
+Widgets, drawn static for now: {{widget_list}}.
+Anchor links scroll to their section. No hover or game logic yet.
+```
+
+## Single-page variant: Stage 4 (widget behavior and states)
+
+```
+KEEP: Header, sections {{section_list}}, CSS variables, {{data_constant_name}}. Do not restyle or reorder anything.
+{{brand_block}}
+
+Make each widget work start to end:
+- {{widget_1_name}}: {{widget_1_path}}
+- {{widget_2_name}}: {{widget_2_path}}
+{{more_widgets}}
+{{timer_rule}}
+States using existing tokens only:
+- Empty: {{empty_state_copy}}.
+- Hover and selected: {{hover_selected_rule}}.
+- Error: {{error_state_copy}}.
 ```
