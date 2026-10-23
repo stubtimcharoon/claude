@@ -14,7 +14,7 @@ This is Stage A of a two-stage pipeline.
 - **Stage A (this skill): research and drafting ONLY.** Output is `drafts/<GOAL_KEY>.json`. Nothing else.
 - **Stage B (`execution/post_goal_updates.py`): deterministic posting.** It reads the drafts, chunks long bodies into labelled `(1/N)` posts, and posts them to Atlas.
 
-**This skill must never call the GraphQL API, never call `post-atlas-update.sh`, and never write to Atlas.** No `goals_createUpdate`, no `goals_byKey`, no curl to `xsolla.atlassian.net`. If you find yourself about to post, stop: the draft file is the deliverable. Do not create calendar events or send Slack messages either.
+**This skill must never call the GraphQL API, never call `post-atlas-update.sh`, and never write to Atlas.** No `goals_createUpdate`, no `goals_byKey`, no curl to `xsolla.atlassian.net`. The one exception is the read-only helper `execution/atlassian_read.py` (see "No MCP tools? Use the read-only helper"), which has no write path. If you find yourself about to post, stop: the draft file is the deliverable. Do not create calendar events or send Slack messages either.
 
 ## Use subagents for the research
 
@@ -72,9 +72,23 @@ Record:
 
 XSOLLA-10661, 10662, 10663 and 10664 have **never received an update**, so on the first run their `updates` list is empty. Handle this explicitly: set `previous_update_summary` to JSON `null` (not an empty string, not the text "none"), use the 14-day window, and write the body as a first update (what the goal is, where it stands, named owners, dates, numbers, blockers) because there is no prior text to take a delta against. Do not assume an update exists and do not index into an empty list. Check the other four goals the same way: any goal can have an empty list.
 
+### No MCP tools? Use the read-only helper
+
+In GitHub Actions there is no Atlassian MCP. If `getGoal` / `searchJiraIssuesUsingJql` / `searchConfluence` are not in your tool list, do NOT stop and do NOT write zero drafts. Use the read-only helper instead (it uses the `ATLASSIAN_*` env vars already set in CI; run it from the repo root):
+
+```bash
+python3 execution/atlassian_read.py goal XSOLLA-8723                   # Step 1: status + last 3 updates (text already flattened)
+python3 execution/atlassian_read.py jql 'project in (XLAPAGES, XLAPAGESN) AND updated >= "2026-10-08"' 40
+python3 execution/atlassian_read.py issue MED-369                       # description + recent comments
+python3 execution/atlassian_read.py cql 'space = XNTWRK AND lastmodified >= "2026-10-08"' 25
+python3 execution/atlassian_read.py page 24149524689                    # page body as plain text
+```
+
+`goal` gives you `status` (copy it verbatim into `status_passthrough`) and `updates[0].text` / `created` (your `previous_update_summary` and window start). Slack has no fallback in CI: skip it and lean on Jira and Confluence. Subagents get the same instruction.
+
 ### Why the MCP and not GraphQL
 
-Raw GraphQL to `xsolla.atlassian.net` is **BLOCKED by the egress proxy inside Claude cloud sessions** (`curl: (56) CONNECT tunnel failed, response 403`). The same call works from a GitHub Actions runner. So for research, the MCP path above is the one to use. Do not try to work around the block, do not retry with another token, and do not conclude a token rotated: that 403 is network policy before auth is attempted.
+Raw GraphQL to `xsolla.atlassian.net` is **BLOCKED by the egress proxy inside Claude cloud sessions** (`curl: (56) CONNECT tunnel failed, response 403`). The same call works from a GitHub Actions runner. So in cloud sessions use the MCP path above; in GitHub Actions use the read-only helper. Do not try to work around the block, do not retry with another token, and do not conclude a token rotated: that 403 is network policy before auth is attempted.
 
 ## Step 2: Research
 

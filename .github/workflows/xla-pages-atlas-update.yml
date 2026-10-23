@@ -1,9 +1,8 @@
 name: XLA Pages Atlas Update
 
 on:
-  schedule:
-    # 8th and 22nd of every month at 09:00 UTC.
-    - cron: '0 9 8,22 * *'
+  # Schedule removed 2026-10-23: superseded by atlas-goal-update.yml (all eight goals).
+  # Running both would double-post. Manual dispatch only.
   workflow_dispatch:
 
 permissions:
