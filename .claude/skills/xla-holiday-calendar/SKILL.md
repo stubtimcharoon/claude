@@ -18,6 +18,9 @@ Triggers: "holiday calendar", "XLA calendar", "holiday demo", "advent calendar".
 | `BRIEF.md` | Goal, audience, people (roles), demo flows, what "live" means, views, out of scope, brand rules and token pointer, links. Unknowns are `TODO`. |
 | `data/doors.schema.json` | JSON Schema for one door and the file wrapper. States: locked, teased, available, claimed, sold_out, missed. Optional fields: special_label, shell, cap, remaining, hint, gold_bonus, news_quest. |
 | `data/doors.sample.json` | Fake sample doors (under `doors`) to seed the demo. Partner and game names are illustrative only. |
+| `design/XUI-GUIDE.md` | XUI tokens, components, door state mapping, layout, motion, contrast. Every value source-tagged. |
+| `design/tokens.json` | Sourced tokens as flat JSON. |
+| `design/brand-block.txt` | Brand constraints block to paste verbatim into every Figma Make prompt. |
 | `decisions.md` | Append-only log of settled choices. Newest at the bottom. |
 
 ## Step 1: Load context before any design work
