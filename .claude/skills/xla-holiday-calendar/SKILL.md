@@ -16,7 +16,7 @@ Triggers: "holiday calendar", "XLA calendar", "holiday demo", "advent calendar".
 | File | Holds |
 |---|---|
 | `BRIEF.md` | Goal, audience, people (roles), demo flows, what "live" means, views, out of scope, brand rules and token pointer, links. Unknowns are `TODO`. |
-| `data/doors.schema.json` | JSON Schema for one door and the file wrapper. |
+| `data/doors.schema.json` | JSON Schema for one door and the file wrapper. States: locked, teased, available, claimed, sold_out, missed. Optional fields: special_label, shell, cap, remaining, hint, gold_bonus, news_quest. |
 | `data/doors.sample.json` | Fake sample doors (under `doors`) to seed the demo. Partner and game names are illustrative only. |
 | `decisions.md` | Append-only log of settled choices. Newest at the bottom. |
 
@@ -39,7 +39,7 @@ To turn this into Figma Make prompts, use the sibling skill **`figma-make-prompt
 ## Step 4: Review passes
 
 - Accessibility: `design:accessibility-review` on each iteration (contrast, keyboard order through the door grid, focus states, screen reader labels for door state and countdown).
-- Copy: `design:ux-copy` for door states, countdown, claim confirmation, missed and locked doors, empty and error states.
+- Copy: `design:ux-copy` for door states, countdown, claim confirmation, locked, teased, sold out and missed doors, empty and error states.
 - Log any change these passes cause in `decisions.md`.
 
 ## Data rules
