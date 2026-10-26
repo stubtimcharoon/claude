@@ -1,0 +1,6 @@
+# Raw export artifacts. Regenerable from the Drive source, and there is no reason
+# to keep extra copies of a raw partner-revenue export in version control.
+source.xlsx
+data/source.xlsx
+data/raw_all_web_shops.json
+data/raw_excluded.json
