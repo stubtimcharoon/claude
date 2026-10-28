@@ -2,9 +2,10 @@ name: STK Bi-Weekly Update
 
 on:
   schedule:
-    # 8th and 22nd of every month at 10:00 UTC.
-    # One hour after the two Atlas crons so they do not contend.
-    - cron: '0 10 8,22 * *'
+    # Every Tuesday at 04:00 UTC, which is 11:00 Asia/Bangkok.
+    # Sits before Sam's usual follow-up posting window and avoids the
+    # 09:00 UTC slot the two Atlas crons use.
+    - cron: '0 4 * * 2'
   workflow_dispatch:
 
 permissions:

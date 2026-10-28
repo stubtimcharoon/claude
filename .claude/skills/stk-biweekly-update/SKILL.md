@@ -1,6 +1,6 @@
 ---
 name: stk-biweekly-update
-description: Researches and publishes the bi-weekly STK status page to Confluence for the 7 tracked STK initiatives. Pulls signal from Slack (primary) and Jira, writes one Update/Next Steps/Sources block per ticket, publishes under Sam's personal space, then reports a follow-up checklist and close candidates. Runs on the 8th and 22nd of every month. Use when running the STK bi-weekly update, STK weekly update, or STK initiative status page.
+description: Researches and publishes the STK status page to Confluence for the 6 tracked STK initiatives. Pulls signal from Slack and from each initiative's linked development tickets, writes one Update/Next Steps/Sources block per ticket, publishes under Sam's personal space, then reports a follow-up checklist and close candidates. Fires every Tuesday. Use when running the STK bi-weekly update, STK weekly update, or STK initiative status page.
 ---
 
 # STK Bi-Weekly Update Skill
@@ -8,7 +8,7 @@ description: Researches and publishes the bi-weekly STK status page to Confluenc
 Publishes the STK status page for the tracked STK initiatives and reports which
 tickets still need a follow-up.
 
-Last revised 2026-10-12.
+Last revised 2026-10-28.
 
 ## Run modes
 
@@ -52,12 +52,27 @@ page.
 
 ## STEP 1: PERIOD
 
-- Cadence is 14 days. START = today minus 14 days, END = today.
-- Earlier versions used a 10 day window against a 14 day cadence, which dropped
-  4 days of signal every run. Do not reintroduce that.
+- END = today.
+- START = the END date of the most recent STK Weekly Updates page under the
+  archive parent. Find it by listing children of parentId 24751538613 and
+  reading the latest title. Starting where the last page ended makes
+  overlapping pages impossible.
+- If no previous page can be read, fall back to today minus 14 days.
+- Never use a fixed 10 day window. An earlier version paired a 10 day window
+  with a 14 day cadence and dropped 4 days of signal every run.
 - Slack `after:` / `before:` are exclusive, so search with
   `after:(START-1) before:(END+1)`.
 - For `conversations.history`, `oldest` is the unix timestamp of START.
+
+### Cadence
+
+- The cron fires every Tuesday, so pages are weekly and usually short.
+- Sam posts his Jira follow-ups on a 13 day cycle, held by the "STK updates"
+  calendar block. Grisha's automation escalates at about day 15 after the last
+  follow-up, so 13 days leaves a 2 day buffer.
+- The two cadences are deliberately different: a fresh page is always waiting
+  when a follow-up falls due.
+- Next follow-up due Tuesday 3 November 2026.
 
 ## STEP 2: GATHER SIGNALS
 
@@ -115,7 +130,7 @@ Slack alone under-reports. The 25 Sep to 5 Oct run wrongly showed STK-2746 as
 inactive because its work lives in Jira and Figma. Always also check each
 ticket's linked development ticket below.
 
-### Tracked tickets (7)
+### Tracked tickets (6)
 
 1. **STK-3261 Overlay and Items Scope Planning** (Alexander Menshikov)
    Search "overlay items scope planning STK-3261" and broadly "gamepix overlay".
@@ -143,12 +158,7 @@ ticket's linked development ticket below.
    Legal: LEGAL-6469 (Pending Reporter Feedback, unsigned). No dev ticket yet,
    by design.
 
-6. **STK-960 Payment Pages - Project Coordination and Design Revamp**
-   (Kirill Tokarev)
-   PRIMARY: channel C09JA0JH17V. Also search "xsolla pages payment pages STK-960".
-   Dev: DEVALL-1656 (Plugin Approved), DEVALL-2245, XLAPAGESN-203, XLAPAGESN-207.
-
-7. **STK-4513 Omni Chat / Overlay Concept** (Alexander Menshikov)
+6. **STK-4513 Omni Chat / Overlay Concept** (Alexander Menshikov)
    PRIMARY: channel C0B50D99484. Also search "STK-4513 omni chat overlay".
    Dev: MED-205 (In Progress), MED-294, MED-297, MED-298, XLAPAGESN-214.
 
@@ -162,6 +172,10 @@ in older instructions were wrong.
   DEVALL-59 and MAX-115.
 - STK-956 Marketing Balance: Influencer Engagement Strategy - 8 Done,
   9 Oct 2026. Live-service work continues in OFWTECH.
+- STK-960 Payment Pages - Project Coordination and Design Revamp - 8 Done,
+  21 Oct 2026, closed by Kirill Tokarev the day after the MVP went live.
+  Remaining work is in XLAPAGESN (post-release bug container XLAPAGESN-368)
+  and DEVALL-2245. Public announcement is targeted for 17 Nov 2026.
 
 Open follow-up: the influencer engagement half of STK-956 has no home. STK-1732
 "Xsolla influencers" (Aleksey Treschilov, 2 Formalization) is the obvious
@@ -233,7 +247,7 @@ run output, and exit non-zero so the cron surfaces as failed.
 ## STEP 4: FOLLOW-UP CHECK (read-only)
 
 ```
-issueKey in (STK-3261, STK-3184, STK-2746, STK-1306, STK-2422, STK-960, STK-4513)
+issueKey in (STK-3261, STK-3184, STK-2746, STK-1306, STK-2422, STK-4513)
 AND updated >= "<today>"
 ```
 
