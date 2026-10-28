@@ -1,0 +1,106 @@
+name: STK Update
+
+on:
+  schedule:
+    # Every Tuesday at 04:00 UTC, which is 11:00 Asia/Bangkok.
+    # Sits before Sam's usual follow-up posting window and avoids the
+    # 09:00 UTC slot the Atlas crons use.
+    - cron: '0 4 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish-update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Subscription auth (preferred). Generate locally with `claude setup-token`.
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      # API-credit auth, only used when no OAuth token is set. Claude Code
+      # prefers the API key when both exist, which silently broke every run
+      # between 8 and 23 Oct with "Credit balance is too low".
+      ANTHROPIC_API_KEY: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}
+      ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
+      ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
+      ATLASSIAN_SITE: ${{ secrets.ATLASSIAN_SITE }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Preflight secrets
+        run: |
+          fail=0
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::no Claude auth configured. Set CLAUDE_CODE_OAUTH_TOKEN (run 'claude setup-token' locally) or ANTHROPIC_API_KEY."
+            fail=1
+          elif [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "Claude auth: subscription OAuth token"
+          else
+            echo "Claude auth: ANTHROPIC_API_KEY (requires API credit balance)"
+          fi
+          for v in ATLASSIAN_EMAIL ATLASSIAN_API_TOKEN ATLASSIAN_SITE; do
+            if [ -z "${!v}" ]; then echo "::error::required secret $v is empty"; fail=1; fi
+          done
+          if [ -z "$SLACK_BOT_TOKEN" ]; then
+            echo "::warning::SLACK_BOT_TOKEN is empty. Slack is the primary research source, so the page will be Jira only."
+          fi
+          [ "$fail" -eq 0 ] || exit 1
+
+      - name: Verify Atlassian credentials before burning a run
+        run: |
+          code="$(curl -sS -o /tmp/whoami.json -w '%{http_code}' --max-time 30 \
+            -u "$ATLASSIAN_EMAIL:$ATLASSIAN_API_TOKEN" \
+            "https://$ATLASSIAN_SITE/rest/api/3/myself" || echo 000)"
+          case "$code" in
+            200) echo "Atlassian token OK" ;;
+            401|403) echo "::error::Atlassian auth failed (HTTP $code). TOKEN ROTATION NEEDED."; exit 1 ;;
+            000) echo "::error::could not reach $ATLASSIAN_SITE (network or DNS problem), NOT an auth problem"; exit 1 ;;
+            *)   echo "::error::unexpected HTTP $code from $ATLASSIAN_SITE"; exit 1 ;;
+          esac
+
+      - name: Verify Slack token
+        if: env.SLACK_BOT_TOKEN != ''
+        run: |
+          ok="$(curl -sS --max-time 30 -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            https://slack.com/api/auth.test | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("ok")); print(d.get("error",""), file=sys.stderr)' || echo False)"
+          if [ "$ok" != "True" ]; then
+            echo "::warning::Slack auth.test did not return ok. Slack research will be degraded."
+          else
+            echo "Slack token OK"
+          fi
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run stk-biweekly-update skill
+        run: |
+          set -o pipefail
+          claude --print \
+            --allowedTools "Bash" \
+            -- \
+            "Run the stk-biweekly-update skill (.claude/skills/stk-biweekly-update/SKILL.md) end-to-end for all 6 tracked tickets." \
+            2>&1 | tee /tmp/stk-run.log
+
+      - name: Assert a page was published
+        run: |
+          if grep -qiE 'wiki/spaces/.*/pages/[0-9]+' /tmp/stk-run.log; then
+            echo "Published page URL found in run output."
+          else
+            echo "::error::No Confluence page URL in the run output. The page was probably not published."
+            tail -n 80 /tmp/stk-run.log
+            exit 1
+          fi
+
+      - name: Upload draft fallback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stk-draft
+          path: |
+            STK Weekly Updates*.md
+            /tmp/stk-run.log
+          retention-days: 14
+          if-no-files-found: ignore
