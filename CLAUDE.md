@@ -42,6 +42,7 @@ Cadence and stakes:
 How to write an update:
 - Hard cap: 280 visible characters per post. Draft to fit in ONE post. Count before posting.
 - Never change status or target date unless Sam explicitly asks. Pass the current status through.
+- Wording: say "target assessed" (and what is realistic), never "target moved" or "pushed the date".
 - Lead with work in progress (pitches, pipeline, named leads, what shipped), not just "nothing signed". Say plainly what is not done.
 - If nothing changed, write one line starting "In the plan:" (what comes next, what's ready) plus the milestone. Never write "No change". No padding, no restating context from the parent goal.
 - Never reuse someone else's update wording (e.g. Menshikov's Nov 6 posts). Write it fresh.
