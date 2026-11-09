@@ -31,8 +31,8 @@ This repo automates Atlas goal updates for eight XSOLLA goals.
 
 What Sam owns vs only writes for:
 - Owns: advertising goal XSOLLA-11872 and its measures 11907, 11908, 11909, 11910, 11911, 11912, 11913, 11962, 11965, 11974 (created by Neuronet Bot Nov 3 2026 from Shurick's $100M Advertising plan), plus projects XSOLLA-10948 (Chat MVP) and XSOLLA-11855.
-- Writes updates for, not owner: Pages goals 8723 (Kirill Tokarev) and 10169 (Rene Valen).
-- Owned by others (flag, never edit): 10661 Alex Price, 8889 Sandy Davila, 10662/10663/10664/7370 Menshikov.
+- Not owner, so never post on them: Pages goals 8723 (Kirill Tokarev) and 10169 (Rene Valen); 10661 Alex Price, 8889 Sandy Davila, 10662/10663/10664/7370 Menshikov. Send input to the owner instead.
+- Rule: only post updates on goals and projects Sam owns.
 - Closed: 7681 cancelled, 7687 completed (Nov 9 2026).
 
 Cadence and stakes:
