@@ -43,7 +43,7 @@ How to write an update:
 - Hard cap: 280 visible characters per post. Draft to fit in ONE post. Count before posting.
 - Never change status or target date unless Sam explicitly asks. Pass the current status through.
 - Lead with work in progress (pitches, pipeline, named leads, what shipped), not just "nothing signed". Say plainly what is not done.
-- If nothing changed, write one line ("No change: ...") plus the milestone. No padding, no restating context from the parent goal.
+- If nothing changed, write one forward-looking line (what starts it, what's ready) plus the milestone. Never write "No change". No padding, no restating context from the parent goal.
 - End every update with "First milestone: <milestone> (MM/YY)".
 - Each sibling goal speaks to its own metric. Do not repeat the same example (e.g. one sponsor) across many goals.
 - Only claim what a source shows. Barter is not cash revenue. Do not reuse unverified lines from old updates.
