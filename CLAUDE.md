@@ -52,7 +52,7 @@ How to write an update:
 
 - Research each goal on its own before drafting; never draft a goal's line from a shared topic summary.
 - After posting, fact-check. Post a correction only for a major mismatch (a false statement of current fact). Fold minor mismatches into the next round.
-- Nov 24 round carry-overs: 11907 Fandango budget unapproved (MOVIES-229 parking lot); 11912 each deal needs its own signed IO (template LEGAL-9538); 11913 Finance owner not accepted; 11965 overlay depends on Twitch App XSOLLA-4890 (no launch date); 11909 TwitchCon creators are Xsolla-paid; 11855 email copy still in review (PMSD-1861), MED-374 overdue.
+- Nov 24 round carry-overs: 11911 Serafim tracking still in test, not live (DATAOPS-7430), redemptions not measurable; 11962/11974 TwitchCon placements are Xsolla's own, not brand-paid, Twitch goals wait on Twitch App XSOLLA-4890; 11907 Fandango budget unapproved (MOVIES-229 parking lot); 11912 each deal needs its own signed IO (template LEGAL-9538); 11913 Finance owner not accepted; 11965 overlay depends on Twitch App XSOLLA-4890 (no launch date); 11909 TwitchCon creators are Xsolla-paid; 11855 email copy still in review (PMSD-1861), MED-374 overdue.
 
 How to post (cloud session):
 - Raw GraphQL is blocked here. Use the Atlassian MCP: `createGoalUpdate` / `createProjectUpdate` via `executeWrite`, top-level `cloudId`, with `phaseStatus` set to the current status.
