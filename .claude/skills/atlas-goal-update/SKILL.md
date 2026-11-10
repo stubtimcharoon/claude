@@ -1,27 +1,27 @@
 ---
 name: atlas-goal-update
-description: "Stage A of the two-stage Atlas goal update pipeline. Researches and drafts a delta update for each of eight Atlas goals (Pages and Partner Network) and writes one drafts/<GOAL_KEY>.json per goal. Reads each goal's current status and last update via the Atlassian MCP, researches Slack, Jira, and Confluence, and drafts what changed since the previous update. Does NOT post anything: a separate Python script (execution/post_goal_updates.py, Stage B) chunks and posts the drafts. Use when drafting Atlas goal updates for the eight XSOLLA goals."
+description: "Stage A of the two-stage Atlas goal update pipeline. Researches and drafts a delta update for each of seven Atlas goals (Pages and Partner Network) and writes one drafts/<GOAL_KEY>.json per goal. Reads each goal's current status and last update via the Atlassian MCP, researches Slack, Jira, and Confluence, and drafts what changed since the previous update. Does NOT post anything: a separate Python script (execution/post_goal_updates.py, Stage B) chunks and posts the drafts. Use when drafting Atlas goal updates for the seven XSOLLA goals."
 ---
 
 # Atlas Goal Update Skill (Stage A: research and draft)
 
-Researches eight Atlas goals and writes **one JSON draft per goal** to `drafts/<GOAL_KEY>.json`. Then it stops.
+Researches seven Atlas goals and writes **one JSON draft per goal** to `drafts/<GOAL_KEY>.json`. Then it stops.
 
 ## Division of labour (read this first)
 
 This is Stage A of a two-stage pipeline.
 
 - **Stage A (this skill): research and drafting ONLY.** Output is `drafts/<GOAL_KEY>.json`. Nothing else.
-- **Stage B (`execution/post_goal_updates.py`): deterministic posting.** It reads the drafts, chunks long bodies into labelled `(1/N)` posts, and posts them to Atlas.
+- **Stage B (`execution/post_goal_updates.py`): deterministic posting.** It reads the drafts and posts each one to Atlas as a single update. It rejects any body over 280 characters.
 
 **This skill must never call the GraphQL API, never call `post-atlas-update.sh`, and never write to Atlas.** No `goals_createUpdate`, no `goals_byKey`, no curl to `xsolla.atlassian.net`. The one exception is the read-only helper `execution/atlassian_read.py` (see "No MCP tools? Use the read-only helper"), which has no write path. If you find yourself about to post, stop: the draft file is the deliverable. Do not create calendar events or send Slack messages either.
 
 ## Use subagents for the research
 
-Step 2 research covers eight goals across Slack, Jira and Confluence. Do not do it serially.
+Step 2 research covers seven goals across Slack, Jira and Confluence. Do not do it serially.
 
-- Spawn parallel subagents, grouped by source or by goal cluster, and launch them all in a single message so they run concurrently. Natural groupings: the two Pages goals, the five Partner Network goals (XSOLLA-10661, 8889, 10662, 10663, 10664), and XSOLLA-7370's Confluence sync page.
-- Each agent returns **findings only**. The main session does the drafting (Step 3 onward), so the voice and the delta framing stay consistent across all eight goals.
+- Spawn parallel subagents, grouped by source or by goal cluster, and launch them all in a single message so they run concurrently. Natural groupings: the two Pages goals and the five Partner Network goals (XSOLLA-10661, 8889, 10662, 10663, 10664).
+- Each agent returns **findings only**. The main session does the drafting (Step 3 onward), so the voice and the delta framing stay consistent across all seven goals.
 - Tell each agent explicitly that it is **read-only**: never post, never write a draft, never call the GraphQL API.
 
 ## Constants
@@ -43,15 +43,14 @@ Step 2 research covers eight goals across Slack, Jira and Confluence. Do not do 
 | XSOLLA-10662 | 3. Xsolla Mall Bundle Program | 01316922-438a-4e78-a61e-271d637cc475 |
 | XSOLLA-10663 | 4. XPN for Brands | 7ed43f4e-034e-4b7d-a14a-838ab5eb3fd8 |
 | XSOLLA-10664 | 5. Partner-Granted Items | 5c5198c7-a438-4ebf-af6e-ad62251fa392 |
-| XSOLLA-7370 | Partner Network / Scaling Creator Commerce | b6ac4f12-9a9a-4b79-b495-7592892f71bb |
 
 `goal_ari` for a goal is the ARI prefix above followed by its UUID. Example: XSOLLA-10663 is `ari:cloud:townsquare:9dfc393f-ac2d-4cef-8b1c-0657da26067f:goal/7ed43f4e-034e-4b7d-a14a-838ab5eb3fd8`.
 
-Grouping for research: XSOLLA-8723 and XSOLLA-10169 are the **Pages** goals. XSOLLA-10661, 8889, 10662, 10663, 10664 and 7370 are the **Partner Network** goals.
+Grouping for research: XSOLLA-8723 and XSOLLA-10169 are the **Pages** goals. XSOLLA-10661, 8889, 10662, 10663 and 10664 are the **Partner Network** goals. XSOLLA-7370 is Alexander Menshikov's goal and is NOT updated by this pipeline.
 
 ## Step 1: Memory (current status and last update)
 
-For each of the eight goals, read its current `status.value` AND its most recent update summary. That summary is your memory of what was already said.
+For each of the seven goals, read its current `status.value` AND its most recent update summary. That summary is your memory of what was already said.
 
 Use the Atlassian MCP operation `getGoal` via `executeRead` with a top-level `cloudId`:
 
@@ -106,16 +105,6 @@ Projects `XLAPAGES` and `XLAPAGESN` (the active project migrated to XLAPAGESN, s
 
 Space `XNTWRK`. Use `mcp__Atlassian_MCP__searchConfluence` for pages modified since the window start, and `mcp__Atlassian_MCP__getConfluenceContent` to read a page.
 
-### XSOLLA-7370 specifically: the XPN sync page
-
-For XSOLLA-7370 the main source is the newest dated child page of Confluence page `23096623175` (parent title "XPN Builders & Sellers Sync").
-
-1. List the descendants of `23096623175` (`getConfluencePageDescendants` via `executeRead` if it is not a primary tool; run `discover` if unsure of the name; `limit: 100`, paginate with `cursor` if one comes back).
-2. Keep only titles matching `YYYY-MM-DD Partner Network Product x Business`. Match on this child pattern, not on the parent's name.
-3. Select by **parsing the leading `YYYY-MM-DD` out of the title** and taking the largest date that is not in the future.
-4. **Do NOT sort by created date.** `getConfluencePageDescendants` returns only `id`, `status`, `title`, `parentId`, `depth`, `childPosition`, `type` and `lastModified`. There is no `createdAt` field, so a created-date sort silently picks the wrong page. Use `lastModified` only to break a tie between two identical title dates.
-5. Read the chosen page and convert what is on it. Do not invent content. If the page's title date is older than the goal's previous update, there has been no new sync: say so in one short line instead of recycling the old page.
-
 ### Source tracking
 
 Keep the canonical URL of every Jira issue, Confluence page and Slack permalink that actually drove a claim. They go in `sources`, never in `body`. Jira URLs look like `https://xsolla.atlassian.net/browse/MED-262`.
@@ -143,11 +132,22 @@ Rules:
 - Order most important first.
 - Status is not in the body. Do not write "on track" or "at risk" into the text unless it is a substantive fact about a named deadline.
 
-### Length: write what the goal deserves
+### Format: one post, 280 characters, "Key wins:" (hard rule)
 
-**Do not count characters. Do not trim to fit a limit.** Older skills capped updates at 280 characters and that destroyed content. Chunking is Stage B's job: it splits long bodies cleanly into `(1/N)` labelled posts. Write the content the goal deserves and let the poster chunk it.
+Each goal gets **exactly one Atlas update**: a single plain-text paragraph of **at most 280 characters**, in Sam's established format:
 
-A rough steer is one to three sentences per goal. That is a steer, not a cap. A goal with several real changes can run longer. Do not pad a quiet goal to match a busy one.
+> Key wins: <what shipped or was decided, with numbers and ticket keys>. Blocker(s): <named blocker, owner, how long>. Next: <next concrete step and date>.
+
+Real examples from the goal history:
+
+> Key wins: New PM Rene Valen joined XLA Pages; JJ Park joined on the Mall side. Buy Game page redesign finalizing the game key page for template use. 6 titles in queue, 4 prioritized. Two templates agreed: ideal + feasible. Onboarding welcome book prepared.
+
+> Key wins: Design complete for all plugins + Payment Page. Targeting Aug 10 creation tool, Oct 30 auto-gen MVP. Shop Builder added auto-generation to Q3 plan. AI-prototype workshop kicking off with Kir Romanovsky team. Claim process spec written.
+
+Rules:
+- **Count characters with a script before writing the draft** (`python3 -c 'import sys; print(len(sys.argv[1]))' "<body>"`). Over 280 means rewrite shorter: pick the 2 or 3 facts that matter most. Stage B rejects any body over 280; it never splits a goal into `(1/N)` parts.
+- If nothing shipped, write `Key wins: none this round.` and go straight to the blocker.
+- **No research notes in the body.** Never write things like "not verified", "Slack was not checked", "no evidence found", "differs from the previous update", "sections were left blank", or "in the sources checked". If a fact is uncertain, leave it out. Caveats go in your run report, not in Atlas.
 
 ### Status
 
@@ -155,7 +155,7 @@ A rough steer is one to three sentences per goal. That is a steer, not a cap. A 
 
 ## Step 4: Write the drafts
 
-Create the `drafts/` directory if needed and write one file per goal, `drafts/<GOAL_KEY>.json` (for example `drafts/XSOLLA-10663.json`). Eight files in total, each valid JSON, each exactly this schema (the contract with Stage B: do not add, rename or drop fields):
+Create the `drafts/` directory if needed and write one file per goal, `drafts/<GOAL_KEY>.json` (for example `drafts/XSOLLA-10663.json`). Seven files in total, each valid JSON, each exactly this schema (the contract with Stage B: do not add, rename or drop fields):
 
 ```json
 {
@@ -176,7 +176,7 @@ Field rules:
 - `body`: the delta from Step 3.
 - `sources`: array of URL strings that drove the body. Empty array `[]` is allowed if nothing was found, but then the body should be the one-line no-change statement.
 
-After writing, validate each file (for example `python3 -c "import json,sys; json.load(open(sys.argv[1]))" drafts/<KEY>.json`) and check that no `body` contains an em-dash, a URL or markdown syntax. Then report the eight draft paths and a one-line summary per goal, and **stop**. Do not post.
+After writing, validate each file (for example `python3 -c "import json,sys; json.load(open(sys.argv[1]))" drafts/<KEY>.json`) and check that no `body` contains an em-dash, a URL or markdown syntax. Then report the seven draft paths and a one-line summary per goal, and **stop**. Do not post.
 
 ## House style
 
@@ -191,7 +191,6 @@ After writing, validate each file (for example `python3 -c "import json,sys; jso
 - **Status is passthrough.** Copy `status.value` verbatim. Only deviate if a hard external deadline is demonstrably slipping.
 - **This skill never posts.** No GraphQL, no `post-atlas-update.sh`, no `goals_createUpdate`, no writes to Atlas. Posting is `execution/post_goal_updates.py` (Stage B).
 - **`drafts/` is gitignored.** Drafts must never be committed or pushed. Do not `git add` them.
-- **Do not count characters or trim.** The 280-character cap lives in Stage B's chunking, not here.
-- **XSOLLA-7370 page selection.** Parse the title date; never sort by created date (the field does not exist on descendants). `lastModified` is a tie-break only.
+- **One post, max 280 characters, "Key wins:" format.** Count with a script. Stage B rejects longer bodies; it never chunks.
 - **cloudId is top-level.** Passing it inside `inputs` makes the execute call fail.
 - Keep `getGoal` calls to `limits.updates: 3`. Only the most recent update feeds `previous_update_summary`; the other two help you see whether a theme keeps repeating.

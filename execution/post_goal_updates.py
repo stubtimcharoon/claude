@@ -334,6 +334,9 @@ def main() -> int:
             chunks = chunk_body(draft["body"])
             if not chunks:
                 raise GoalError("body is empty after chunking")
+            # Format rule: one post per goal. Never split a goal into (1/N) fragments.
+            if len(chunks) > 1:
+                raise GoalError(f"body is {len(draft['body'])} chars; one post per goal, max {MAX_VISIBLE_CHARS}. Stage A must rewrite it shorter")
             row["intended"] = len(chunks)
 
             if args.dry_run:

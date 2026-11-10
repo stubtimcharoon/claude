@@ -36,10 +36,6 @@ GOALS = {
         "name": "5. Partner-Granted Items",
         "uuid": "5c5198c7-a438-4ebf-af6e-ad62251fa392",
     },
-    "XSOLLA-7370": {
-        "name": "Partner Network / Scaling Creator Commerce",
-        "uuid": "b6ac4f12-9a9a-4b79-b495-7592892f71bb",
-    },
 }
 
 

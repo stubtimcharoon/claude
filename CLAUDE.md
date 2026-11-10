@@ -12,15 +12,16 @@ Always delegate to subagents when possible. Do not work serially in the main ses
 
 ## Repo context
 
-This repo automates Atlas goal updates for eight XSOLLA goals.
+This repo automates Atlas goal updates for seven XSOLLA goals.
 
-- Two-stage pipeline. Stage A (`.claude/skills/atlas-goal-update/`) researches and writes `drafts/<KEY>.json`. Stage B (`execution/post_goal_updates.py`) deterministically chunks and posts.
+- Two-stage pipeline. Stage A (`.claude/skills/atlas-goal-update/`) researches and writes `drafts/<KEY>.json`. Stage B (`execution/post_goal_updates.py`) deterministically posts.
 - Read the skill and the script before changing either.
 - `execution/goals.py` is the single source of truth for goal keys and ARIs. Never hardcode an ARI anywhere else.
 
 ## Hard rules
 
-- Atlas goal update summaries cap at 280 VISIBLE characters. Chunk, never trim.
+- One Atlas update per goal: a single "Key wins:" paragraph, max 280 VISIBLE characters. Never split into (1/N) parts; Stage B rejects long bodies.
+- XSOLLA-7370 is Alexander Menshikov's goal. This pipeline does not post to it.
 - `goals_createUpdate` returns HTTP 200 with `success: false` on rejection. Always check `success`, never the HTTP status.
 - `summary` is a String scalar holding a JSON-stringified ADF doc, not an object.
 - Every Goals GraphQL operation needs `@optIn(to: "Townsquare")`.
