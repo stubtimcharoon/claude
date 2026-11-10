@@ -138,3 +138,11 @@ class AdfSummaryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AdfTextTests(unittest.TestCase):
+    def test_adf_text_inverts_adf_summary(self):
+        from post_goal_updates import adf_text
+        text = "Key wins: 3 bundles shipped (1/2)"
+        self.assertEqual(adf_text(adf_summary(text)), text)
+        self.assertEqual(adf_text("plain"), "plain")

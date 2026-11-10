@@ -20,6 +20,7 @@ import json
 import os
 import re
 import sys
+import time
 from typing import Any
 
 import requests
@@ -27,6 +28,8 @@ import requests
 from goals import ARI_PREFIX, CONTAINER_ID, GOALS, MAX_VISIBLE_CHARS, ari_for
 
 TIMEOUT = 30
+POST_GAP_S = 2       # pacing between posts; a full round is ~30 posts
+MAX_429_RETRIES = 6
 
 # Every operation against the Goals API needs the Townsquare opt-in directive.
 # The legacy bash helper omits it on its duplicate-guard query; that is a bug, not a pattern.
@@ -35,10 +38,10 @@ Q_RESOLVE = (
     'goals_byKey(goalKey:$key,containerId:$cid)@optIn(to:"Townsquare")'
     "{id key name state{value}}}"
 )
-Q_LAST_UPDATE = (
-    'query LastUpdate($key:String!,$cid:ID!){'
+Q_RECENT_UPDATES = (
+    'query RecentUpdates($key:String!,$cid:ID!){'
     'goals_byKey(goalKey:$key,containerId:$cid)@optIn(to:"Townsquare")'
-    "{id updates(first:1){edges{node{creationDate}}}}}"
+    "{id updates(first:20){edges{node{creationDate summary}}}}}"
 )
 M_CREATE_UPDATE = (
     "mutation CreateUpdate($input:TownsquareGoalsCreateUpdateInput!){"
@@ -174,19 +177,49 @@ def adf_summary(text: str) -> str:
     return json.dumps(doc, separators=(",", ":"))
 
 
+def adf_text(summary: str) -> str:
+    """Inverse of adf_summary: the plain text of a posted summary (ADF JSON string or plain)."""
+    try:
+        doc = json.loads(summary)
+    except (TypeError, ValueError):
+        return (summary or "").strip()
+    out: list[str] = []
+
+    def walk(node: Any) -> None:
+        if isinstance(node, dict):
+            if node.get("type") == "text":
+                out.append(node.get("text", ""))
+            for child in node.get("content") or []:
+                walk(child)
+    walk(doc)
+    return "".join(out).strip()
+
+
 class GoalsClient:
     def __init__(self, site: str, email: str, token: str) -> None:
         self.endpoint = f"https://{site}/gateway/api/graphql"
         self.auth = (email, token)
 
     def _call(self, query: str, variables: dict[str, Any]) -> dict[str, Any]:
-        resp = requests.post(
-            self.endpoint,
-            auth=self.auth,
-            headers={"Content-Type": "application/json", "X-ExperimentalApi": "opt-in"},
-            json={"query": query, "variables": variables},
-            timeout=TIMEOUT,
-        )
+        for attempt in range(MAX_429_RETRIES + 1):
+            resp = requests.post(
+                self.endpoint,
+                auth=self.auth,
+                headers={"Content-Type": "application/json", "X-ExperimentalApi": "opt-in"},
+                json={"query": query, "variables": variables},
+                timeout=TIMEOUT,
+            )
+            if resp.status_code != 429 or attempt == MAX_429_RETRIES:
+                break
+            # The gateway says when the window resets ("resets on 2026-11-10T07:22Z"); wait for it.
+            wait = 30 * (attempt + 1)
+            m = re.search(r"resets on (\d{4}-\d\d-\d\dT\d\d:\d\dZ)", resp.text)
+            if m:
+                reset = dt.datetime.strptime(m.group(1), "%Y-%m-%dT%H:%MZ").replace(tzinfo=dt.timezone.utc)
+                wait = max(5, (reset - dt.datetime.now(dt.timezone.utc)).total_seconds() + 65)
+            wait = min(wait, 900)
+            print(f"rate limited (429), waiting {int(wait)}s then retrying", file=sys.stderr)
+            time.sleep(wait)
         if resp.status_code != 200:
             raise GoalError(f"HTTP {resp.status_code} from Goals API: {resp.text[:300]}")
         payload = resp.json()
@@ -201,19 +234,21 @@ class GoalsClient:
             raise GoalError(f"could not resolve goal {key}")
         return goal
 
-    def updated_today(self, key: str) -> bool:
-        data = self._call(Q_LAST_UPDATE, {"key": key, "cid": CONTAINER_ID})
+    def posted_today(self, key: str) -> set[str]:
+        """Plain text of every update posted to this goal today (UTC). Lets a rerun resume."""
+        data = self._call(Q_RECENT_UPDATES, {"key": key, "cid": CONTAINER_ID})
         edges = (((data.get("goals_byKey") or {}).get("updates") or {}).get("edges")) or []
-        if not edges:
-            return False
-        created = (edges[0].get("node") or {}).get("creationDate")
-        if not created:
-            return False
-        try:
-            when = dt.datetime.fromisoformat(created.replace("Z", "+00:00"))
-        except ValueError:
-            return False
-        return when.astimezone(dt.timezone.utc).date() == dt.datetime.now(dt.timezone.utc).date()
+        today = dt.datetime.now(dt.timezone.utc).date()
+        texts: set[str] = set()
+        for e in edges:
+            node = e.get("node") or {}
+            try:
+                when = dt.datetime.fromisoformat((node.get("creationDate") or "").replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            if when.astimezone(dt.timezone.utc).date() == today:
+                texts.add(adf_text(node.get("summary") or ""))
+        return texts
 
     def post_chunk(self, goal_ari: str, status: str, text: str) -> str:
         payload = {"goalId": goal_ari, "status": status, "summary": adf_summary(text)}
@@ -313,20 +348,21 @@ def main() -> int:
             if live["id"] != draft["goal_ari"]:
                 raise GoalError(f"live ARI {live['id']} != draft ARI {draft['goal_ari']}")
 
-            # A skip is not a failure and must not turn the run red.
-            if client.updated_today(key):
-                row["state"] = "skipped (already updated today)"
-                rows.append(row)
-                print(f"{key}: skipping, already has an update dated today UTC")
-                continue
-
+            # Resume, never duplicate: chunks already posted today count as landed.
+            already = client.posted_today(key)
             status = draft["status_passthrough"]
             for i, chunk in enumerate(chunks, 1):
+                if chunk in already:
+                    row["landed"] += 1
+                    row["urls"].append("(already posted)")
+                    print(f"{key}: {i}/{len(chunks)} already posted today, skipping")
+                    continue
+                time.sleep(POST_GAP_S)
                 url = client.post_chunk(draft["goal_ari"], status, chunk)
                 row["landed"] += 1
                 row["urls"].append(url)
                 print(f"{key}: posted {i}/{len(chunks)} -> {url}")
-            row["state"] = "posted"
+            row["state"] = "posted" if row["urls"].count("(already posted)") < len(chunks) else "skipped (all chunks already posted today)"
 
         except (GoalError, json.JSONDecodeError, OSError) as exc:
             row["error"] = str(exc)
@@ -371,8 +407,9 @@ def main() -> int:
         print(f"\nFAILED: {failures} goal(s) errored, {shortfall} intended chunk(s) did not land.", file=sys.stderr)
         return 1
 
-    posted = sum(r["landed"] for r in rows)
-    print(f"\nOK: {posted} update(s) posted.")
+    posted = sum(1 for r in rows for u in r["urls"] if u != "(already posted)")
+    resumed = sum(r["urls"].count("(already posted)") for r in rows)
+    print(f"\nOK: {posted} update(s) posted, {resumed} already posted earlier today.")
     return 0
 
 
