@@ -167,6 +167,8 @@
       if (hp.role !== 'host' || (s.myPeer && hp.opp !== s.myPeer)) opp = null; // host gone or paired with someone else
     }
     if (opp && opp.presence !== s.oppPres) {
+      if (s.gapLast) { var gap = now - s.gapLast; s.gaps = s.gaps || []; s.gaps.push(gap); if (s.gaps.length > 120) s.gaps.shift(); }
+      s.gapLast = now;
       s.oppPres = opp.presence; s.lastHeard = now;
       s.oppInfo = opp.presence && opp.presence.info ? cleanInfo(opp.presence.info) : s.oppInfo;
     }
@@ -532,6 +534,13 @@
   };
 
   N.code = function () { return S ? S.code : null; };
+  /* Diagnostics for live testing: how often the opponent's state arrives (ms between updates) and how stale it is. */
+  N.stats = function () {
+    if (!S) return null;
+    var g = (S.gaps || []).slice().sort(function (a, b) { return a - b; }), now = N._now();
+    var q = function (p) { return g.length ? g[Math.min(g.length - 1, Math.floor(p * g.length))] : null; };
+    return { role: S.role, status: N.status, gapMed: q(0.5), gapP95: q(0.95), gapMax: g.length ? g[g.length - 1] : null, since: now - S.lastHeard, samples: g.length };
+  };
 
   N.tick = function (dt) {
     var s = S;

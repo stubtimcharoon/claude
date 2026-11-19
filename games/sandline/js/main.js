@@ -1246,3 +1246,59 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(window.SL);
+
+/* Diagnostics readout for real-device and live-online testing. Off by default.
+   Turn on: open the page with #diag, or tap the round clock 5 times quickly. Shows frame rate, slow-frame time,
+   and (online) how often the opponent's updates arrive and how stale the latest one is. */
+(function () {
+  'use strict';
+  var on = false, el = null, times = [], lastT = 0, taps = [], timer = 0;
+  function make() {
+    el = document.createElement('div');
+    el.id = 'diag';
+    el.setAttribute('aria-live', 'off');
+    el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top, 0px) + 96px);' +
+      'z-index:30;pointer-events:none;padding:6px 10px;border-radius:6px;background:var(--panel, rgba(29,24,32,.86));' +
+      'color:var(--ink, #f6ead6);font:600 11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;' +
+      'font-variant-numeric:tabular-nums;white-space:pre-wrap;text-align:left;max-width:calc(100vw - 32px);box-sizing:border-box;';
+    document.body.appendChild(el);
+  }
+  function loop(t) {
+    if (!on) return;
+    if (lastT) { times.push(t - lastT); if (times.length > 180) times.shift(); }
+    lastT = t;
+    requestAnimationFrame(loop);
+  }
+  function render() {
+    if (!on || !el) return;
+    var s = times.slice().sort(function (a, b) { return a - b; });
+    var avg = s.length ? s.reduce(function (a, b) { return a + b; }, 0) / s.length : 0;
+    var p95 = s.length ? s[Math.floor(s.length * 0.95)] : 0;
+    var lines = ['fps ' + (avg ? Math.round(1000 / avg) : '-') + '   slow frames ' + (p95 ? p95.toFixed(1) : '-') + ' ms'];
+    var n = window.SL && SL.net && typeof SL.net.stats === 'function' ? SL.net.stats() : null;
+    if (n) {
+      var f = function (v) { return v == null ? '-' : Math.round(v); };
+      lines.push(n.role + ' ' + n.status + '   updates every ' + f(n.gapMed) + ' ms (p95 ' + f(n.gapP95) + ', max ' + f(n.gapMax) + ')');
+      lines.push('last update ' + f(n.since) + ' ms ago');
+    }
+    el.textContent = lines.join('\n');
+  }
+  function setOn(v) {
+    on = v;
+    if (on) { if (!el) make(); el.hidden = false; lastT = 0; times = []; requestAnimationFrame(loop); timer = setInterval(render, 500); }
+    else { if (el) el.hidden = true; clearInterval(timer); }
+  }
+  function boot() {
+    try { if (location.hash === '#diag') setOn(true); } catch (e) { /* ignore */ }
+    var clock = document.getElementById('clock');
+    if (clock) {
+      clock.style.pointerEvents = 'auto';
+      clock.addEventListener('pointerdown', function (e) {
+        e.stopPropagation();
+        var t = Date.now(); taps = taps.filter(function (x) { return t - x < 2000; }); taps.push(t);
+        if (taps.length >= 5) { taps = []; setOn(!on); }
+      });
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
