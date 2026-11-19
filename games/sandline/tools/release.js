@@ -69,7 +69,7 @@ const st = page => page.evaluate(() => { const G = SL.G; return { mode: G.mode, 
       if (i % 8 === 0) (x=>{console.error('LOG',JSON.stringify(x));log.push(x)})({ i, A: a, B: b });
     }
     await A.screenshot({ path: OUT + '/o4-host.png' }); await B.screenshot({ path: OUT + '/o5-guest.png' });
-    await B.close(); await sleep(5000); (x=>{console.error('LOG',JSON.stringify(x));log.push(x)})({ afterGuestLeft: await st(A) }); await A.screenshot({ path: OUT + '/o6-left.png' });
+    await B.close(); await sleep(11500); (x=>{console.error('LOG',JSON.stringify(x));log.push(x)})({ afterGuestLeft: await st(A) }); await A.screenshot({ path: OUT + '/o6-left.png' });
   }
   console.log(JSON.stringify({ log, errs: errs.slice(0, 25), errCount: errs.length }, null, 1));
   await browser.close(); srv.close();

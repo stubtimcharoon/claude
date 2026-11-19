@@ -96,7 +96,7 @@ window.SL = window.SL || {};
      laser: seconds a visible aim warning shows (view draws it through fog) before the first shot of an engagement. */
   SL.WEAPONS = {
     smg:     { id: 'smg',     name: 'SMG',     tag: 'Best on the run',           range: 7,   rate: 0.08,  dmg: 16,  pellets: 1, still: 3.5, move: 5,  mag: 30, reload: 1.6, speed: 4.9, needStill: 0,    laser: 0,    gun: [0.50, 0.11, 0.11] },
-    rifle:   { id: 'rifle',   name: 'Rifle',   tag: 'Stop, then shoot',          range: 8.5, rate: 0.135, dmg: 18,  pellets: 1, still: 1.8, move: 9,  mag: 25, reload: 2.0, speed: 4.2, needStill: 0,    laser: 0,    gun: [0.70, 0.10, 0.10] },
+    rifle:   { id: 'rifle',   name: 'Rifle',   tag: 'Stop, then shoot',          range: 8.5, rate: 0.135, dmg: 17,  pellets: 1, still: 2.4, move: 9,  mag: 25, reload: 2.0, speed: 4.2, needStill: 0,    laser: 0,    gun: [0.70, 0.10, 0.10] },
     shotgun: { id: 'shotgun', name: 'Shotgun', tag: 'One shot at point blank',   range: 6.5, rate: 0.55,  dmg: 12,  pellets: 10, still: 10, move: 20, mag: 6,  reload: 2.2, speed: 4.8, needStill: 0,    laser: 0,    gun: [0.55, 0.15, 0.15] },
     sniper:  { id: 'sniper',  name: 'Sniper',  tag: 'Plant your feet, hold a lane', range: 18, rate: 1.0,   dmg: 95,  pellets: 1, still: 0.5, move: 16, mag: 5,  reload: 2.6, speed: 3.7, needStill: 0.3,  laser: 0.4,  gun: [0.95, 0.09, 0.09] }
   };

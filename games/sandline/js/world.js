@@ -538,8 +538,7 @@
     }
     drawSite(g, 1, { field: ['#dcab84', '#d19c76'], frame: '#b9785a', accent: '#8f4a36', cream: '#f0dfc2' }, rnd);
     drawSite(g, 2, { field: ['#c3cbc6', '#b4bfbc'], frame: '#7c949a', accent: '#3f5f6e', cream: '#eee6d3' }, rnd);
-    drawRug(g, World.spawnP.x, World.spawnP.z, 4.4, 2.2, '#36324d', '#35c2b0', '#efe0c4');
-    drawRug(g, World.spawnB.x, World.spawnB.z + 0.1, 3.6, 2.2, '#58282b', '#ef5b3f', '#efe0c4');
+    paintRugs(g, false);
     // rubble pebbles at the foot of crumbled corners
     plan.crumbled.forEach(function (p) {
       for (d = 0; d < 4; d++) {
@@ -561,7 +560,17 @@
     }
     var t = new THREE.CanvasTexture(cv);
     t.anisotropy = 4;
+    floorPaint = { g: g, tex: t, flip: false };
     return t;
+  }
+  /* Spawn rugs carry team colours: the local player's spawn is teal, the opponent's red. Repainted in place when the
+     local player switches sides (online guest spawns at the top). Sizes stay fixed so a repaint covers the old rug. */
+  var floorPaint = null;
+  var RUG_TEAL = ['#36324d', '#35c2b0', '#efe0c4'], RUG_RED = ['#58282b', '#ef5b3f', '#efe0c4'];
+  function paintRugs(g, flip) {
+    var bottom = flip ? RUG_RED : RUG_TEAL, top = flip ? RUG_TEAL : RUG_RED;
+    drawRug(g, World.spawnP.x, World.spawnP.z, 4.4, 2.2, bottom[0], bottom[1], bottom[2]);
+    drawRug(g, World.spawnB.x, World.spawnB.z + 0.1, 3.6, 2.2, top[0], top[1], top[2]);
   }
 
   /* ---------- small textures ---------- */
@@ -949,6 +958,7 @@
     /* Team banners follow the local player: teal at whichever spawn is yours (guest spawns at the top). */
     var wantFlip = !!(SL.G && SL.G.flip);
     if (anim.bannerTex && anim.bannerFlip !== wantFlip) { anim.bannerTex.offset.x = wantFlip ? 0.5 : 0; anim.bannerFlip = wantFlip; }
+    if (floorPaint && floorPaint.flip !== wantFlip) { paintRugs(floorPaint.g, wantFlip); floorPaint.tex.needsUpdate = true; floorPaint.flip = wantFlip; }
     anim.t += Math.min(Math.max(dt || 0, 0), 0.1);
     var t = anim.t, A = anim.amp, i;
     if (anim.banner) {
