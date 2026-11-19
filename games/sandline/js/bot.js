@@ -15,7 +15,7 @@
   /* Retreat tuning (measured with tests/sim.test.js): fleeing in the open loses fights, so the bot only
      breaks off when cover is close and the foe is not already on top of it, then holds the spot as an ambush. */
   var T = { reloadMin: 0.8, reloadHold: 1.2, hpHold: 4, hpMinDist: 4, hpCoverMax: 4.5,
-            ambushGap: 3, ambushEvery: 7 };
+            ambushGap: 3, ambushEvery: 7, laneHold: 1.5 };
 
   /* Blind picks lean toward the guns that suit this lane-heavy map (order follows SL.WEAPON_ORDER). */
   var WEIGHTS = {
@@ -52,9 +52,9 @@
     return o[o.length - 1];
   }
 
-  function remember(bot, x, z) {
+  function remember(bot, x, z, ping) {
     var ai = bot.ai;
-    ai.lastSeen = { x: x, z: z, t: ai.t };
+    ai.lastSeen = { x: x, z: z, t: ai.t, ping: !!ping };
     ai.known = { x: x, z: z, t: ai.t };
   }
 
@@ -63,7 +63,7 @@
     if (!e || !e.u) return;
     for (var i = 0; i < bots.length; i++) {
       var b = bots[i];
-      if (b.ai && b.ai.ready && b.alive && SL.enemyOf(b) === e.u) remember(b, e.x, e.z);
+      if (b.ai && b.ai.ready && b.alive && SL.enemyOf(b) === e.u) remember(b, e.x, e.z, true);
     }
   });
 
@@ -223,6 +223,7 @@
     } else { ai.prevDist = -1; ai.closing = 0; }
 
     var mx = 0, mz = 0, mag = 0, look = null, wantMove = false, goal = null, dashGoal = false;
+    var laneGun = T.laneHold > 0 && (w.needStill > 0 || w.range > pw.range + T.ambushGap);
 
     /* ---- retreat: break line of sight to reload, or once per life when losing badly; then ambush ---- */
     var lowHp = vis && bot.hp < 35 && foe.hp > bot.hp + 15;
@@ -288,10 +289,12 @@
         }
       }
       /* else: stand still, combat aims at the target and the stance tightens spread */
-    } else if (ai.lastSeen && ai.t - ai.lastSeen.t < MEMORY) {
+    } else if (ai.lastSeen && ai.t - ai.lastSeen.t < (laneGun && !ai.lastSeen.ping ? T.laneHold : MEMORY)) {
       ai.holding = false;
-      goal = ai.lastSeen;
       look = angTo(bot, ai.lastSeen);
+      /* A long gun that just lost sight does not chase round the corner into short-gun range: it holds the
+         angle where the foe vanished and lets them re-peek into its sight line. */
+      if (!laneGun || ai.lastSeen.ping) goal = ai.lastSeen;
     } else {
       ai.lastSeen = null;
       if (ai.holding) {

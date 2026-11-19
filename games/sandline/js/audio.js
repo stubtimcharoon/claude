@@ -654,8 +654,14 @@
     N.comp = c.createDynamicsCompressor();
     N.comp.threshold.value = -18; N.comp.knee.value = 6; N.comp.ratio.value = 4;
     N.comp.attack.value = 0.003; N.comp.release.value = 0.12;
-    N.comp.connect(c.destination);
-    N.master = gainNode(c, 0.8, N.comp);
+    /* brickwall-style limiter after the bus compressor: keeps stacked shots, stings and music under 0 dBFS (no clipping) */
+    N.lim = c.createDynamicsCompressor();
+    N.lim.threshold.value = -3; N.lim.knee.value = 0; N.lim.ratio.value = 20;
+    N.lim.attack.value = 0.001; N.lim.release.value = 0.08;
+    N.comp.connect(N.lim);
+    N.limOut = gainNode(c, 0.89, c.destination);
+    N.lim.connect(N.limOut);
+    N.master = gainNode(c, 1.1, N.comp);
     N.sfxG = gainNode(c, 1, N.master);
     N.musicG = gainNode(c, 1, N.master);
     N.muffle = filt(c, 'lowpass', 18000, 0.5, N.sfxG);

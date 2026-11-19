@@ -232,7 +232,7 @@ function printShares(label, pool) {
 }
 
 /* Bot-vs-bot gun matrix on Normal: every ordered gun pair, so picks are uniform. */
-var mat = {}, mirror = {};
+var mat = {}, mirror = {}, matrixTimeouts = 0;
 GUNS.forEach(function (g) { mirror[g] = [0, 0]; mat[g] = {}; });
 var perPair = Math.max(10, Math.round(ROUNDS / 4));
 GUNS.forEach(function (ga) {
@@ -241,6 +241,7 @@ GUNS.forEach(function (ga) {
     for (var r = 0; r < perPair; r++) {
       var res = runRound(ga, gb, 'normal', null, true);
       problems += res.nan + res.solid;
+      if (!res.winner) matrixTimeouts++;
       if (!res.winner || res.winner === 'both') continue;
       n++; if (res.winner === 'p') wa++;
       mirror[ga][1]++; mirror[gb][1]++; mirror[res.winner === 'p' ? ga : gb][0]++;
@@ -248,7 +249,7 @@ GUNS.forEach(function (ga) {
     mat[ga][gb] = n ? wa / n : NaN;
   });
 });
-console.log('\nBot-vs-bot (Normal) row gun win rate vs column gun:');
+console.log('\nBot-vs-bot (Normal) row gun (bottom spawn) win rate vs column gun (top spawn); timeouts ' + matrixTimeouts + ':');
 console.log('         ' + GUNS.map(function (g) { return g.padStart(8); }).join(''));
 GUNS.forEach(function (ga) {
   console.log(ga.padEnd(9) + GUNS.map(function (gb) { return (Math.round(mat[ga][gb] * 100) + '%').padStart(8); }).join(''));
