@@ -180,7 +180,8 @@
     border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--ink);
   }
 
-  /* Dash */
+  /* Dash (removed from play; element kept hidden so old bindings stay harmless) */
+  #dash[hidden] { display: none !important; }
   #dash {
     position: absolute; z-index: 7; width: 68px; height: 68px; padding: 0;
     right: max(16px, env(safe-area-inset-right, 0px));
@@ -588,7 +589,7 @@
     </div>
   </footer>
 
-  <button id="dash" type="button" aria-label="Dash">
+  <button id="dash" type="button" aria-label="Dash" hidden>
     <svg class="ring" viewBox="0 0 76 76" aria-hidden="true"><circle class="ring-bg" cx="38" cy="38" r="35"/><circle class="ring-fg" id="dashRing" cx="38" cy="38" r="35" stroke-dasharray="219.9" stroke-dashoffset="0"/></svg>
     <span class="dash-label" aria-hidden="true">
       <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6l6 6-6 6M12 6l6 6-6 6"/></svg>
@@ -656,7 +657,7 @@
           Settings
         </button>
       </div>
-      <p class="caption" id="winNote">First to 4 rounds</p>
+      <p class="caption" id="winNote">First to 5 rounds</p>
     </div>
   </section>
 
@@ -779,8 +780,8 @@
           <div><h3><span class="n">02</span>Auto-fire</h3><p>Your gun aims and shoots on its own when the foe is in sight and range. Stand still to aim tighter.</p></div>
         </div>
         <div class="how-card">
-          <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l10 10-10 10M24 14l10 10-10 10"/><path d="M40 12v24" opacity=".5"/></svg>
-          <div><h3><span class="n">03</span>Dash</h3><p>Tap Dash (or Space) to burst out of a fight. It recharges in a few seconds.</p></div>
+          <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="12" width="32" height="24" rx="4"/><path d="M20 22a4 4 0 1 1 6 3.5c-1.3.8-2 1.6-2 3M24 31.5v.5"/></svg>
+          <div><h3><span class="n">03</span>Blind pick</h3><p>Each round you pick a gun without seeing your foe's. You find out what they carry when you meet.</p></div>
         </div>
       </div>
       <div class="sheet-actions"><button class="btn btn-primary" id="howDone" type="button">Got it</button></div>

@@ -144,10 +144,7 @@
     G.roundT = C.ROUND_TIME;
     pickMode = online() ? 'online' : 'blind';
     botFirst = null;
-    if (G.mode === 'solo' && G.round > 1) {
-      if (G.lastRoundWinner === 'b') { pickMode = 'botFirst'; botFirst = validW(SL.bot.pickWeapon(G.diff, null)); }
-      else if (G.lastRoundWinner === 'p') pickMode = 'botAfter';
-    }
+    /* Picks are always blind: neither side learns the other's gun until it sees it in a fight. */
     SL.combat.resetUnit(G.player, SL.world.spawnP, -PI / 2, validW(myPick || G.playerWeapon));
     if (G.mode === 'solo') SL.combat.resetUnit(G.bot, SL.world.spawnB, PI / 2, validW(botFirst || botWeapon));
     setState('pick');
@@ -158,7 +155,7 @@
     ui('card', id);
     lastPick = id; myPick = id; G.playerWeapon = id; pickedRound = G.round;
     if (G.mode === 'solo') {
-      var bw = pickMode === 'botFirst' ? botFirst : SL.bot.pickWeapon(G.diff, pickMode === 'botAfter' ? id : null);
+      var bw = SL.bot.pickWeapon(G.diff, null);
       startCountdown(id, bw);
     } else {
       try { SL.net.setLocal({ pick: { r: G.round, w: id } }); } catch (e) { logOnce('setPick', e); }
@@ -262,7 +259,7 @@
         feed([{ c: 'y', t: 'You' }, ' took down ', { c: 'b', t: foeName() }, ' with the ' + wname(P.weapon) + ', ' + Math.round(d) + ' m']);
       } else if (dead === P) {
         var k = killer || G.bot;
-        feed([{ c: 'b', t: foeName() }, ' took you down with the ' + wname(k.weapon)]);
+        feed([{ c: 'b', t: foeName() }, ' took you down']);
       }
     }
     if (G.mode !== 'guest' && G.state === 'live') {
@@ -361,7 +358,7 @@
       botWeapon = validW(pw); // display only: net applies units from the host snapshot
     }
     cdShown = COUNTDOWN_T;
-    showBanner(String(cdShown), foeName() + ' has the ' + wname(botWeapon), 'sand', 0, true);
+    showBanner(String(cdShown), 'Get ready', 'sand', 0, true);
     ui('tick');
   }
 
@@ -392,7 +389,7 @@
       var n = COUNTDOWN_T - Math.floor(uiT);
       if (n >= 1 && n !== cdShown) {
         cdShown = n;
-        showBanner(String(n), foeName() + ' has the ' + wname(botWeapon), 'sand', 0, true);
+        showBanner(String(n), 'Get ready', 'sand', 0, true);
         ui('tick');
       }
     }
@@ -621,9 +618,9 @@
     } else if (pickMode === 'botAfter') {
       note.textContent = 'You took the last round. The bot will counter your pick.';
     } else if (pickMode === 'online') {
-      note.textContent = 'Pick your weapon. Your rival picks at the same time.';
+      note.textContent = 'Blind pick. You will not know your rival\'s gun until you see it.';
     } else {
-      note.textContent = 'Blind pick. The bot chooses at the same time.';
+      note.textContent = 'Blind pick. You will not know the bot\'s gun until you see it.';
     }
     for (var i = 0; i < el.cardList.length; i++) {
       var card = el.cardList[i], id = card.getAttribute('data-weapon');
@@ -911,6 +908,7 @@
 
   /* ---------- dash ---------- */
   function doDash() {
+    return; // dash removed from the game; kept as a no-op so old bindings stay harmless
     if (!(G.state === 'live' || G.state === 'roundEnd') || !G.player.alive || G.paused || modal) return;
     var i = worldInput();
     var ok = false;
@@ -1139,7 +1137,6 @@
       var k = KEYMAP[e.code];
       var play = G.state === 'live' || G.state === 'countdown' || G.state === 'roundEnd';
       if (k) { keys[k] = 1; if (play) e.preventDefault(); return; }
-      if (e.code === 'Space' && play) { e.preventDefault(); if (!e.repeat) doDash(); return; }
       if (e.key === 'Escape' && inMatch()) { e.preventDefault(); openModal('settings'); return; }
       if (G.state === 'pick' && /^Digit[1-9]$/.test(e.code)) {
         var id = SL.WEAPON_ORDER[parseInt(e.code.slice(5), 10) - 1];

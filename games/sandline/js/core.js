@@ -19,7 +19,7 @@ window.SL = window.SL || {};
     UNIT_R: 0.34,          // collision radius
     HIT_R: 0.42,           // bullet hit radius
     HP: 100,
-    WIN: 4,                // rounds to win the match
+    WIN: 5,                // rounds to win the match
     ROUND_TIME: 45,        // seconds
     STALL_FROM: 12,        // last N seconds of a round: both positions are pinged through fog
     STALL_EVERY: 3,        // seconds between pings
@@ -105,8 +105,8 @@ window.SL = window.SL || {};
   /* Bot tuning per difficulty. dash: whether the bot uses its dash. */
   SL.DIFF = {
     easy:   { label: 'Easy',   reaction: 0.46, spreadMul: 1.6, hunt: 0.35, cover: false, dash: false },
-    normal: { label: 'Normal', reaction: 0.28, spreadMul: 1.2,  hunt: 0.55, cover: true,  dash: true },
-    hard:   { label: 'Hard',   reaction: 0.24, spreadMul: 0.95, hunt: 0.75, cover: true,  dash: true }
+    normal: { label: 'Normal', reaction: 0.34, spreadMul: 1.2,  hunt: 0.55, cover: true,  dash: false },
+    hard:   { label: 'Hard',   reaction: 0.28, spreadMul: 0.95, hunt: 0.75, cover: true,  dash: false }
   };
 
   /* ---------------- cosmetics catalog (frozen ids; profile.js unlocks, view.js renders) ----------------
