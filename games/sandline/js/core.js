@@ -19,7 +19,7 @@ window.SL = window.SL || {};
     UNIT_R: 0.34,          // collision radius
     HIT_R: 0.42,           // bullet hit radius
     HP: 100,
-    WIN: 5,                // rounds to win the match
+    WIN: 3,                // rounds to win the match (first to 3)
     ROUND_TIME: 45,        // seconds
     STALL_FROM: 12,        // last N seconds of a round: both positions are pinged through fog
     STALL_EVERY: 3,        // seconds between pings
@@ -115,28 +115,28 @@ window.SL = window.SL || {};
   SL.COSMETICS = {
     headgear: [
       { id: 'helmet',   name: 'Field helmet', req: null },
-      { id: 'keffiyeh', name: 'Keffiyeh',     req: { kind: 'wins', n: 1 },          hint: 'Win a match' },
-      { id: 'goggles',  name: 'Dune goggles', req: { kind: 'winDiff', diff: 'normal' }, hint: 'Win on Normal' },
+      { id: 'keffiyeh', name: 'Keffiyeh',     req: { kind: 'matches', n: 1 },       hint: 'Finish a match' },
+      { id: 'goggles',  name: 'Dune goggles', req: { kind: 'wins', n: 1 },          hint: 'Win a match' },
       { id: 'bandit',   name: 'Bandit mask',  req: { kind: 'winDiff', diff: 'hard' },   hint: 'Win on Hard' },
-      { id: 'brass',    name: 'Brass helm',   req: { kind: 'flawless', n: 1 },      hint: 'Win a match without dropping a round' }
+      { id: 'brass',    name: 'Brass helm',   req: { kind: 'flawless', n: 1 },      hint: 'Win a match without losing a round' }
     ],
     trim: [
       { id: 'standard', name: 'Standard', color: 0xe8c99a, req: null },
-      { id: 'dune',     name: 'Dune',     color: 0xc98a4b, req: { kind: 'matches', n: 5 },  hint: 'Play 5 matches' },
-      { id: 'oasis',    name: 'Oasis',    color: 0x7fd6c9, req: { kind: 'wins', n: 10 },    hint: 'Win 10 matches' },
+      { id: 'dune',     name: 'Dune',     color: 0xc98a4b, req: { kind: 'matches', n: 2 },  hint: 'Finish 2 matches' },
+      { id: 'oasis',    name: 'Oasis',    color: 0x7fd6c9, req: { kind: 'wins', n: 3 },     hint: 'Win 3 matches' },
       { id: 'night',    name: 'Night',    color: 0x2b2533, req: { kind: 'online', n: 1 },   hint: 'Finish an online match' }
     ],
     tracer: [
       { id: 'gold',  name: 'Gold',  color: 0xffd36b, req: null },
-      { id: 'brass', name: 'Brass', color: 0xd9a441, req: { kind: 'kills', weapon: 'rifle', n: 25 },   hint: '25 rifle kills' },
-      { id: 'ember', name: 'Ember', color: 0xff6a3d, req: { kind: 'kills', weapon: 'shotgun', n: 15 }, hint: '15 shotgun kills' },
-      { id: 'ice',   name: 'Ice',   color: 0x9fe7ff, req: { kind: 'kills', weapon: 'sniper', n: 10 },  hint: '10 sniper kills' },
-      { id: 'neon',  name: 'Neon',  color: 0x7dff9a, req: { kind: 'kills', weapon: 'smg', n: 25 },     hint: '25 SMG kills' }
+      { id: 'brass', name: 'Brass', color: 0xd9a441, req: { kind: 'kills', weapon: 'rifle', n: 5 },    hint: '5 rifle kills' },
+      { id: 'ember', name: 'Ember', color: 0xff6a3d, req: { kind: 'kills', weapon: 'shotgun', n: 5 },  hint: '5 shotgun kills' },
+      { id: 'ice',   name: 'Ice',   color: 0x9fe7ff, req: { kind: 'kills', weapon: 'sniper', n: 5 },   hint: '5 sniper kills' },
+      { id: 'neon',  name: 'Neon',  color: 0x7dff9a, req: { kind: 'kills', weapon: 'smg', n: 5 },      hint: '5 SMG kills' }
     ],
     killfx: [
       { id: 'sand',   name: 'Sand burst',  req: null },
-      { id: 'glass',  name: 'Glass shards', req: { kind: 'xp', n: 1000 }, hint: 'Reach 1000 XP' },
-      { id: 'banner', name: 'Banner drop',  req: { kind: 'xp', n: 3000 }, hint: 'Reach 3000 XP' }
+      { id: 'glass',  name: 'Glass shards', req: { kind: 'xp', n: 300 },  hint: 'Reach 300 XP' },
+      { id: 'banner', name: 'Banner drop',  req: { kind: 'xp', n: 800 },  hint: 'Reach 800 XP' }
     ]
   };
   SL.DEFAULT_EQUIP = { headgear: 'helmet', trim: 'standard', tracer: 'gold', killfx: 'sand' };

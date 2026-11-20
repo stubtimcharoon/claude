@@ -383,18 +383,19 @@
   .stat-bar i { display: block; height: 100%; border-radius: 3px; background: var(--sand); }
 
   /* Results */
-  .overlay--end { justify-content: center; text-align: center; background: radial-gradient(ellipse at 50% 40%, var(--veil) 0%, var(--scrim) 60%, var(--night) 100%); }
-  .end-title { margin: 6px 0 0; font-size: clamp(44px, 14vw, 72px); font-weight: 700; line-height: 1; letter-spacing: .04em; text-transform: uppercase; text-shadow: 0 4px 0 var(--shadow); }
+  .overlay--end > .ov-inner { margin-top: auto; margin-bottom: auto; }
+  .overlay--end { justify-content: flex-start; text-align: center; background: radial-gradient(ellipse at 50% 40%, var(--veil) 0%, var(--scrim) 60%, var(--night) 100%); }
+  .end-title { margin: 6px 0 0; font-size: clamp(40px, 12vw, 64px); font-weight: 700; line-height: 1; letter-spacing: .04em; text-transform: uppercase; text-shadow: 0 4px 0 var(--shadow); }
   .end-title.you { color: var(--you); }
   .end-title.foe { color: var(--foe); }
-  .end-score { display: flex; justify-content: center; align-items: center; gap: 18px; margin: 16px 0 14px; }
+  .end-score { display: flex; justify-content: center; align-items: center; gap: 18px; margin: 12px 0 12px; }
   .es { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .es span { font-size: 56px; font-weight: 700; line-height: .9; font-variant-numeric: tabular-nums; }
+  .es span { font-size: 48px; font-weight: 700; line-height: .9; font-variant-numeric: tabular-nums; }
   .es small { font-size: 12px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; }
   .es--you { color: var(--you); }
   .es--foe { color: var(--foe); }
   .es-sep { font-size: 36px; font-weight: 700; color: var(--dim); }
-  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0 0 14px; padding: 12px 6px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0 0 12px; padding: 10px 6px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
   .stats-grid div { display: flex; flex-direction: column; gap: 4px; }
   .stats-grid dt { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); line-height: 1.2; }
   .stats-grid dd { margin: 0; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -405,16 +406,43 @@
   .xp-bar { position: relative; height: 10px; border-radius: 5px; background: var(--track); overflow: hidden; }
   .xp-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: var(--sand); transform-origin: 0 50%; transform: scaleX(0); }
   .xp-sub { margin-top: 6px; font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
-  .unlocks { display: grid; gap: 8px; margin-top: 14px; }
+  .rewards { text-align: left; padding: 14px 14px 12px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+  .rewards-title { margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .24em; text-transform: uppercase; color: var(--dim); }
+  .xp-lines { margin: 0 0 10px; display: grid; gap: 2px; }
+  .xp-lines div { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; line-height: 20px; }
+  .xp-lines dt { color: var(--dim); }
+  .xp-lines dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .medals { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+  .medal {
+    display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px 0 7px; border-radius: 15px;
+    background: var(--sand-wash); border: 1px solid var(--line-strong); font-size: 12px; font-weight: 700; letter-spacing: .04em;
+    animation: chip .35s cubic-bezier(.2, 1.4, .4, 1) both;
+  }
+  .medal svg { color: var(--sand); flex: 0 0 auto; }
+  .medal .m-xp { color: var(--sand); font-variant-numeric: tabular-nums; }
+  .medal--victor svg, .medal--flawless svg, .medal--comeback svg { color: var(--you); }
+  .xp-row .lvl { display: inline-block; transform-origin: 0 70%; }
+  .xp-row .lvl.pop { animation: lvlpop .6s cubic-bezier(.2, 1.6, .4, 1); }
+  .locker-done { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; text-align: center; font-size: 13px; font-weight: 700; letter-spacing: .06em; color: var(--you); background: var(--you-wash); border: 1px solid var(--you); }
+  .menu-next { margin: 8px 0 0; font-size: 13px; color: var(--dim); text-shadow: 0 1px 4px var(--shadow); min-height: 18px; }
+  .menu-next b { color: var(--sand); font-weight: 700; }
+  .locker-count { margin-left: 6px; font-size: 13px; letter-spacing: .08em; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .unlocks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
   .unlock {
-    display: flex; align-items: center; gap: 12px; padding: 10px 12px; text-align: left;
+    display: flex; align-items: center; gap: 10px; padding: 10px; text-align: left;
     border-radius: 12px; border: 1px solid var(--sand); background: var(--sand-wash);
     opacity: 0; transform: translateY(10px) scale(.96); transition: opacity .35s ease, transform .35s cubic-bezier(.2, 1.4, .4, 1);
   }
   .unlock.in { opacity: 1; transform: none; }
-  .unlock .u-kind { font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--sand); }
-  .unlock .u-name { font-size: 16px; font-weight: 700; }
-  .end-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+  .unlock .u-kind { font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--sand); white-space: nowrap; }
+  .unlock .swatch { width: 30px; height: 30px; }
+  .unlock > div { min-width: 0; }
+  .unlock .u-name { font-size: 15px; font-weight: 700; line-height: 1.2; }
+  .unlock .u-via { font-size: 11px; color: var(--dim); line-height: 1.25; margin-top: 2px; }
+  .end-actions {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; padding: 10px 0 4px;
+    position: sticky; bottom: 0; z-index: 1; background: linear-gradient(to top, var(--night) 72%, var(--scrim-clear));
+  }
   #rematchStatus { margin-top: 10px; font-size: 13px; color: var(--dim); min-height: 18px; }
 
   /* Swatches (locker + unlock cards) */
@@ -514,6 +542,8 @@
 
   @keyframes pop { 0% { transform: scale(1.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
   @keyframes stamp { 0% { transform: scale(2.1) rotate(-8deg); opacity: 0; } 60% { transform: scale(.94) rotate(1deg); opacity: 1; } 100% { transform: scale(1) rotate(0); } }
+  @keyframes chip { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: none; } }
+  @keyframes lvlpop { 0% { transform: scale(1); color: var(--ink); } 35% { transform: scale(1.45); color: var(--ink); } 100% { transform: scale(1); } }
   @keyframes bump { 0% { transform: scale(1.45); } 100% { transform: scale(1); } }
   @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
   @keyframes rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -621,7 +651,8 @@
       <h1 class="wordmark" id="menuTitle">SANDLINE</h1>
       <div class="sandline" aria-hidden="true"><i class="sl-you"></i><b></b><i class="sl-foe"></i></div>
       <p class="pitch">1v1 auto-fire duel on a three-lane desert map</p>
-      <div class="level-chip"><span class="lvl" id="menuLevel">Level 1</span><span class="mini-bar"><i id="menuXpFill"></i></span><span class="xpv" id="menuXp">0 XP</span></div>
+      <div class="level-chip"><span class="lvl" id="menuLevel">Level 1</span><span class="mini-bar"><i id="menuXpFill"></i></span><span class="xpv" id="menuXp">0 / 120 XP</span></div>
+      <p class="menu-next" id="menuNext"></p>
     </div>
     <div class="ov-inner menu-foot">
       <div>
@@ -657,7 +688,7 @@
           Settings
         </button>
       </div>
-      <p class="caption" id="winNote">First to 5 rounds</p>
+      <p class="caption" id="winNote">First to 3 rounds</p>
     </div>
   </section>
 
@@ -713,14 +744,20 @@
         <div><dt>Accuracy</dt><dd id="rAcc">0%</dd></div>
         <div><dt>Damage</dt><dd id="rDmg">0</dd></div>
         <div><dt>Longest kill</dt><dd id="rLong">-</dd></div>
-        <div><dt>Flawless rounds</dt><dd id="rFlaw">0</dd></div>
+        <div><dt>Untouched rounds</dt><dd id="rFlaw">0</dd></div>
       </dl>
-      <div class="xp">
-        <div class="xp-row"><span class="lvl" id="xpLevel">Level 1</span><span class="gain" id="xpGain">+0 XP</span></div>
-        <div class="xp-bar"><i id="xpFill"></i></div>
-        <div class="xp-sub" id="xpSub">0 / 300 XP</div>
+      <div class="rewards" aria-labelledby="rewardsTitle">
+        <h3 class="rewards-title" id="rewardsTitle">Rewards</h3>
+        <dl class="xp-lines" id="xpLines"></dl>
+        <div class="medals" id="medals" role="list" aria-label="Medals earned"></div>
+        <div class="xp">
+          <div class="xp-row"><span class="lvl" id="xpLevel">Level 1</span><span class="gain" id="xpGain">+0 XP</span></div>
+          <div class="xp-bar"><i id="xpFill"></i></div>
+          <div class="xp-sub" id="xpSub">0 / 120 XP</div>
+        </div>
+        <div class="unlocks" id="unlocks" aria-live="polite" hidden></div>
+        <p class="locker-done" id="lockerDone" hidden>Locker complete. Levels and medals keep counting.</p>
       </div>
-      <div class="unlocks" id="unlocks" aria-live="polite"></div>
       <div class="end-actions">
         <button class="btn btn-primary" id="rematchBtn" type="button">Rematch</button>
         <button class="btn btn-ghost" id="menuBtn" type="button" data-sfx="back">Menu</button>
@@ -733,7 +770,7 @@
   <section class="modal" id="locker" hidden role="dialog" aria-modal="true" aria-labelledby="lockerTitle">
     <div class="sheet">
       <div class="sheet-head">
-        <h2 id="lockerTitle">Locker</h2>
+        <h2 id="lockerTitle">Locker <span class="locker-count" id="lockerCount"></span></h2>
         <button class="icon-btn" id="lockerClose" type="button" aria-label="Close locker" data-sfx="back">
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>

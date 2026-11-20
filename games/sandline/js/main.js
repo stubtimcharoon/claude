@@ -24,7 +24,7 @@
   var vig = 0, dmgT = 0, dashReady = null;
   var scoreAt = { p: 0, b: 0 };
   var rs = blankRound(), ms = blankMatch();
-  var xpAnim = null, unlockCards = [], unlockIdx = 0, unlockT = 0;
+  var xpAnim = null, unlockCards = [], unlockIdx = 0, unlockT = 0, lockerDoneShow = false;
   var lockerSlot = 'headgear';
   var hud = {};
   var errOnce = {};
@@ -33,7 +33,7 @@
 
   function $(id) { return document.getElementById(id); }
   function blankRound() { return { dealt: 0, taken: 0, shots: 0, hits: 0 }; }
-  function blankMatch() { return { dealt: 0, taken: 0, shots: 0, hits: 0, kills: 0, longest: 0, flawless: 0, killsBy: {} }; }
+  function blankMatch() { return { dealt: 0, taken: 0, shots: 0, hits: 0, kills: 0, longest: 0, flawless: 0, killsBy: {}, rounds: [] }; }
   function logOnce(key, e) { if (!errOnce[key]) { errOnce[key] = true; console.error(e); } }
   function online() { return G.mode === 'host' || G.mode === 'guest'; }
   function inMatch() { return !!MATCH_STATES[G.state]; }
@@ -372,6 +372,7 @@
     else sub = winner === 'p' ? foeName() + ' down' : winner === 'b' ? 'You went down' : 'Both down';
     showBanner(main, sub, tone, 0, false);
     if (winner === 'p' && rs.taken <= 0) ms.flawless++;
+    ms.rounds.push({ w: winner, hp: Math.max(0, Math.ceil(G.player.hp || 0)), taken: Math.round(rs.taken) });
     el.sumDealt.textContent = String(Math.round(rs.dealt));
     el.sumTaken.textContent = String(Math.round(rs.taken));
     el.sumAcc.textContent = rs.shots ? Math.round(100 * rs.hits / rs.shots) + '%' : '-';
@@ -410,8 +411,19 @@
     var info = SL.profile.levelInfo(SL.profile.data.xp);
     el.menuLevel.textContent = 'Level ' + info.level;
     el.menuXpFill.style.width = Math.round(info.frac * 100) + '%';
-    el.menuXp.textContent = SL.profile.data.xp + ' XP';
+    el.menuXp.textContent = Math.floor(info.into) + ' / ' + info.need + ' XP';
+    var next = SL.profile.nextReward();
+    el.menuNext.textContent = '';
+    if (next) {
+      el.menuNext.appendChild(document.createTextNode('Next reward: '));
+      var b = document.createElement('b'); b.textContent = itemLabel(next.slot, next.name); el.menuNext.appendChild(b);
+      el.menuNext.appendChild(document.createTextNode(' at level ' + next.level));
+    } else {
+      el.menuNext.textContent = 'Locker complete';
+    }
   }
+
+  function itemLabel(slot, name) { return slot === 'trim' || slot === 'tracer' ? name + ' ' + slot : name; }
 
   function setDiff(key) {
     if (!SL.DIFF[key]) key = 'normal';
@@ -658,17 +670,50 @@
       res = SL.profile.award({
         won: won, diff: G.diff, mode: G.mode, roundsP: G.scoreP, roundsB: G.scoreB,
         stats: { shots: ms.shots, hits: ms.hits, dmgDealt: ms.dealt, dmgTaken: ms.taken, kills: ms.kills, longest: ms.longest },
-        killsBy: ms.killsBy
+        killsBy: ms.killsBy, rounds: ms.rounds
       });
     } catch (e) {
       logOnce('award', e);
-      res = { xp: 0, unlocked: [], xpBefore: SL.profile.data.xp, xpAfter: SL.profile.data.xp };
+      res = { xp: 0, breakdown: [], medals: [], unlocked: [], xpBefore: SL.profile.data.xp, xpAfter: SL.profile.data.xp, complete: SL.profile.isComplete() };
     }
     el.xpGain.textContent = '+' + res.xp + ' XP';
-    var from = res.xpBefore != null ? res.xpBefore : SL.profile.data.xp - res.xp;
-    xpAnim = { from: from, to: from + res.xp, t: 0, delay: 0.5, dur: reduced() ? 0.01 : 1.3, done: false };
-    renderXp(from);
 
+    /* breakdown lines */
+    el.xpLines.textContent = '';
+    (res.breakdown || []).forEach(function (line) {
+      var row = document.createElement('div');
+      var dt = document.createElement('dt'); dt.textContent = line.label;
+      var dd = document.createElement('dd'); dd.textContent = '+' + line.xp;
+      row.appendChild(dt); row.appendChild(dd);
+      el.xpLines.appendChild(row);
+    });
+
+    /* medal chips */
+    el.medals.textContent = '';
+    (res.medals || []).forEach(function (m, i) {
+      var chip = document.createElement('span');
+      chip.className = 'medal medal--' + m.id;
+      chip.style.animationDelay = (0.15 + i * 0.12).toFixed(2) + 's';
+      chip.title = m.desc;
+      chip.setAttribute('role', 'listitem');
+      chip.setAttribute('aria-label', m.name + '. ' + m.desc + '. Plus ' + m.xp + ' XP');
+      chip.innerHTML = medalIcon(m.id);
+      var nm = document.createElement('span'); nm.className = 'm-name'; nm.textContent = m.name;
+      var xp = document.createElement('span'); xp.className = 'm-xp'; xp.textContent = '+' + m.xp;
+      chip.appendChild(nm); chip.appendChild(xp);
+      el.medals.appendChild(chip);
+    });
+
+    /* XP bar: animates through every level-up */
+    var from = res.xpBefore != null ? res.xpBefore : SL.profile.data.xp - res.xp;
+    var to = from + res.xp;
+    var crossed = SL.profile.levelOf(to) - SL.profile.levelOf(from);
+    var rm = reduced();
+    xpAnim = { from: from, to: to, t: 0, delay: rm ? 0 : 0.6, dur: rm ? 0 : SL.clamp(0.9 + 0.45 * crossed, 0.9, 2.6), done: false, shown: SL.profile.levelOf(from) };
+    hud.xpLvl = null;
+    renderXp(rm ? to : from);
+
+    /* unlock cards (revealed one by one after the bar) */
     el.unlocks.textContent = '';
     unlockCards = [];
     (res.unlocked || []).forEach(function (u) {
@@ -676,13 +721,19 @@
       card.className = 'unlock';
       card.appendChild(swatch(u.slot, u.id));
       var t = document.createElement('div');
-      t.innerHTML = '<div class="u-kind">New ' + SLOT_LABEL[u.slot].toLowerCase() + '</div>';
-      var n = document.createElement('div'); n.className = 'u-name'; n.textContent = u.name; t.appendChild(n);
+      var k = document.createElement('div'); k.className = 'u-kind'; k.textContent = 'New ' + SLOT_LABEL[u.slot].toLowerCase();
+      var n = document.createElement('div'); n.className = 'u-name'; n.textContent = u.name;
+      var v = document.createElement('div'); v.className = 'u-via';
+      v.textContent = u.via === 'level' ? 'Level ' + u.level + ' reward' : (u.hint || 'Achievement');
+      t.appendChild(k); t.appendChild(n); t.appendChild(v);
       card.appendChild(t);
       el.unlocks.appendChild(card);
       unlockCards.push(card);
     });
+    el.unlocks.hidden = !unlockCards.length;
     unlockIdx = 0; unlockT = 0;
+    lockerDoneShow = !!res.complete;
+    el.lockerDone.hidden = true;
 
     el.rematchBtn.disabled = false;
     el.rematchStatus.textContent = '';
@@ -696,13 +747,21 @@
     el.xpSub.textContent = Math.floor(info.into) + ' / ' + info.need + ' XP';
   }
 
+  function levelPop() {
+    el.xpLevel.classList.remove('pop'); void el.xpLevel.offsetWidth; el.xpLevel.classList.add('pop');
+    ui('tick', 'level');
+  }
+
   function tickResults(rdt) {
     if (!xpAnim) return;
     if (!xpAnim.done) {
       xpAnim.t += rdt;
-      var k = SL.clamp((xpAnim.t - xpAnim.delay) / xpAnim.dur, 0, 1);
-      var e = 1 - Math.pow(1 - k, 3);
-      renderXp(xpAnim.from + (xpAnim.to - xpAnim.from) * e);
+      var k = xpAnim.dur > 0 ? SL.clamp((xpAnim.t - xpAnim.delay) / xpAnim.dur, 0, 1) : 1;
+      var e = 1 - Math.pow(1 - k, 2);
+      var cur = xpAnim.from + (xpAnim.to - xpAnim.from) * e;
+      renderXp(cur);
+      var lvl = SL.profile.levelOf(cur);
+      if (lvl > xpAnim.shown) { xpAnim.shown = lvl; levelPop(); }
       if (k >= 1) xpAnim.done = true;
       return;
     }
@@ -712,9 +771,26 @@
         unlockCards[unlockIdx].classList.add('in');
         ui('unlock', unlockIdx);
         unlockIdx++;
-        unlockT = 0.5;
+        unlockT = reduced() ? 0.05 : 0.45;
       }
+      return;
     }
+    if (lockerDoneShow) { lockerDoneShow = false; el.lockerDone.hidden = false; }
+  }
+
+  var MEDAL_SVG = {
+    duelist: '<path d="M5 19L17 7M17 7v-3h3M19 19L7 7M7 7V4H4"/>',
+    victor: '<path d="M4 8l4 4 4-7 4 7 4-4-2 10H6z"/>',
+    flawless: '<path d="M12 3l8 9-8 9-8-9z"/>',
+    comeback: '<path d="M4 18c4 0 6-3 7-6s3-6 9-6"/><path d="M16 3l4 3-4 3"/>',
+    sharp: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
+    longshot: '<path d="M3 12h15"/><path d="M14 7l5 5-5 5"/><path d="M3 9v6"/>',
+    closecall: '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/><path d="M12 8v5"/>',
+    untouched: '<path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/>',
+    gritty: '<path d="M5 20h14"/><path d="M7 20V10l5-6 5 6v10"/>'
+  };
+  function medalIcon(id) {
+    return '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (MEDAL_SVG[id] || MEDAL_SVG.duelist) + '</svg>';
   }
 
   function rematch() {
@@ -753,6 +829,8 @@
       tabs[i].tabIndex = on ? 0 : -1;
       if (on) el.lockerItems.setAttribute('aria-labelledby', tabs[i].id);
     }
+    var c = SL.profile.counts();
+    el.lockerCount.textContent = c.have + ' / ' + c.total;
     el.lockerItems.textContent = '';
     (SL.COSMETICS[lockerSlot] || []).forEach(function (it) {
       var unlocked = SL.profile.isUnlocked(lockerSlot, it.id);
@@ -766,14 +844,15 @@
       var txt = document.createElement('span'); txt.className = 'item-text';
       var nm = document.createElement('span'); nm.className = 'item-name'; nm.textContent = it.name;
       var sb = document.createElement('span'); sb.className = 'item-sub';
-      sb.textContent = unlocked ? (equipped ? 'Equipped' : 'Tap to equip') : (it.hint || 'Locked');
+      var lv = unlocked ? 0 : SL.profile.trackLevelFor(lockerSlot, it.id);
+      sb.textContent = unlocked ? (equipped ? 'Equipped' : 'Tap to equip') : (it.hint || 'Locked') + (lv ? ', or reach level ' + lv : '');
       txt.appendChild(nm); txt.appendChild(sb);
       b.appendChild(txt);
       var st = document.createElement('span'); st.className = 'item-state';
       st.textContent = equipped ? 'On' : unlocked ? '' : 'Locked';
       b.appendChild(st);
       b.addEventListener('click', function () {
-        if (!unlocked) { toast(it.hint || 'Locked'); return; }
+        if (!unlocked) { toast((it.hint || 'Locked') + (lv ? ', or reach level ' + lv : '')); return; }
         if (SL.profile.setEquip(lockerSlot, it.id)) {
           G.player.equip = SL.profile.equip;
           if (online()) sendEquip();
@@ -1187,11 +1266,11 @@
     ['splash', 'app', 'game', 'fx', 'hurt', 'lowhp', 'dmgDir', 'dmgArc', 'scoreP', 'scoreB', 'pipsP', 'pipsB', 'foeLabel',
       'clock', 'roundLabel', 'clockTime', 'feed', 'hp', 'hpNum', 'hpFill', 'wpn', 'wpnName', 'wpnAmmo', 'gearBtn',
       'dash', 'dashRing', 'stage', 'banner', 'bannerMain', 'bannerSub', 'summary', 'sumDealt', 'sumTaken', 'sumAcc',
-      'joy', 'joyBase', 'joyKnob', 'menu', 'menuLevel', 'menuXpFill', 'menuXp', 'diffSeg', 'playBtn', 'onlineBtns',
+      'joy', 'joyBase', 'joyKnob', 'menu', 'menuLevel', 'menuXpFill', 'menuXp', 'menuNext', 'diffSeg', 'playBtn', 'onlineBtns',
       'hostBtn', 'joinBtn', 'onlineNote', 'lockerBtn', 'howBtn', 'settingsBtn', 'winNote', 'lobby', 'lobbyCode',
       'copyBtn', 'lobbyStatus', 'lobbyCancel', 'join', 'joinForm', 'joinCode', 'joinStatus', 'joinGo', 'joinCancel',
       'pick', 'pickTitle', 'pickScore', 'pickNote', 'cards', 'end', 'endTitle', 'endP', 'endB', 'endFoeLabel', 'rAcc',
-      'rDmg', 'rLong', 'rFlaw', 'xpLevel', 'xpGain', 'xpFill', 'xpSub', 'unlocks', 'rematchBtn', 'menuBtn',
+      'rDmg', 'rLong', 'rFlaw', 'xpLevel', 'xpGain', 'xpFill', 'xpSub', 'xpLines', 'medals', 'lockerDone', 'lockerCount', 'unlocks', 'rematchBtn', 'menuBtn',
       'rematchStatus', 'locker', 'lockerClose', 'lockerTabs', 'lockerItems', 'settings', 'settingsClose',
       'musicToggle', 'sfxToggle', 'settingsDone', 'leaveBtn', 'howto', 'howDone', 'toast', 'fallback', 'reloadBtn'
     ].forEach(function (id) { el[id] = $(id); });
