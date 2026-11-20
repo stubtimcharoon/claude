@@ -19,11 +19,26 @@
 
   /* Blind picks lean toward the guns that suit this lane-heavy map (order follows SL.WEAPON_ORDER). */
   var WEIGHTS = {
-    easy:   { smg: 1, rifle: 1, shotgun: 1, sniper: 1 },
-    normal: { smg: 1, rifle: 1.2, shotgun: 0.9, sniper: 1 },
-    hard:   { smg: 1, rifle: 1.3, shotgun: 0.8, sniper: 1.1 }
+    easy:   { smg: 1, rifle: 1, shotgun: 1, sniper: 1, hmg: 1, hand: 1 },
+    normal: { smg: 1, rifle: 1.1, shotgun: 0.9, sniper: 1, hmg: 1, hand: 1 },
+    hard:   { smg: 1, rifle: 1.1, shotgun: 0.9, sniper: 1, hmg: 1, hand: 1 }
   };
-  var COUNTER = { sniper: ['smg'], shotgun: ['rifle', 'sniper'], rifle: ['sniper', 'shotgun'], smg: ['rifle'] };
+  var COUNTER = { sniper: ['smg'], shotgun: ['rifle', 'sniper'], rifle: ['sniper', 'shotgun'], smg: ['rifle'],
+                  hmg: ['sniper', 'shotgun'], hand: ['hmg', 'rifle'] };
+  /* Per-gun style. rush: close to chase*range before planting. hold: plant the moment there is a target and
+     wait longer at spots (Heavy MG pays a spin-up on every new engagement, so it wants the foe to come to it).
+     peek: plant on target like a holder, but move on from spots quickly. hold/peek chase to chase*range when the
+     foe is visible but out of range. Unknown guns default to hold. */
+  var STYLE = {
+    smg:     { rush: true,  chase: 0.55, holdMul: 1 },
+    shotgun: { rush: true,  chase: 0.55, holdMul: 1 },
+    rifle:   { rush: false, chase: 0.85, holdMul: 1 },
+    sniper:  { rush: false, chase: 0.85, holdMul: 1.3 },
+    hmg:     { rush: false, chase: 0.8,  holdMul: 1.8 },
+    hand:    { rush: false, chase: 0.8,  holdMul: 0.6 }
+  };
+  var STYLE_DEF = { rush: false, chase: 0.85, holdMul: 1 };
+  function styleOf(w) { return STYLE[w.id] || STYLE_DEF; }
   var COUNTER_P = { easy: 0.45, normal: 1, hard: 1 };
 
   var bots = [];           // units that went through reset(), so pings reach them
@@ -63,7 +78,7 @@
     if (!e || !e.u) return;
     for (var i = 0; i < bots.length; i++) {
       var b = bots[i];
-      if (b.ai && b.ai.ready && b.alive && SL.enemyOf(b) === e.u) remember(b, e.x, e.z, true);
+      if (b.ai && b.ai.ready && b.alive && SL.enemyOf(b) === e.u) { remember(b, e.x, e.z, true); b.ai.stall = true; }
     }
   });
 
@@ -223,7 +238,7 @@
     } else { ai.prevDist = -1; ai.closing = 0; }
 
     var mx = 0, mz = 0, mag = 0, look = null, wantMove = false, goal = null, dashGoal = false;
-    var laneGun = T.laneHold > 0 && (w.needStill > 0 || w.range > pw.range + T.ambushGap);
+    var laneGun = !ai.stall && T.laneHold > 0 && (w.needStill > 0 || w.range > pw.range + T.ambushGap);
 
     /* ---- retreat: break line of sight to reload, or once per life when losing badly; then ambush ---- */
     var lowHp = vis && bot.hp < 35 && foe.hp > bot.hp + 15;
@@ -232,7 +247,8 @@
     var hpRun = lowHp && !ai.fled && dist >= T.hpMinDist && (bot.reloading || ttk(w, foe.hp) > 2 * ttk(pw, bot.hp));
     /* Badly outranged in the open (say SMG facing a sniper down a lane): do not charge, break sight and let the
        foe walk into a corner. Rate limited so the bot does not hide all round. */
-    var ambush = vis && !bot.target && pw.range > w.range + T.ambushGap && dist <= pw.range && ai.t >= ai.ambushNext;
+    /* Once the anti-stall pings start the bot stops playing for time: no ambush breaks, no angle holding. */
+    var ambush = !ai.stall && vis && !bot.target && pw.range > w.range + T.ambushGap && dist <= pw.range && ai.t >= ai.ambushNext;
     if (D.cover && !ai.retreat && (reloadRun || hpRun || ambush)) {
       var why = reloadRun ? 'reload' : hpRun ? 'hp' : 'ambush';
       var c0 = SL.world.findCover(bot.x, bot.z, foe.x, foe.z, 8);
@@ -269,7 +285,8 @@
     } else if (vis) {
       ai.holding = false;
       /* Short guns close in; long guns plant as soon as they have a target (moving costs them accuracy). */
-      var chaseAt = (w.id === 'smg' || w.id === 'shotgun') ? w.range * 0.55 : (bot.target ? Infinity : w.range * 0.85);
+      var st = styleOf(w);
+      var chaseAt = st.rush ? w.range * st.chase : (bot.target ? Infinity : w.range * st.chase);
       var outranges = w.range > pw.range + 1;
       var cheapMove = w.move <= w.still * 2 || bot.reloading || bot.cd > (w.needStill || 0) + SL.C.STILL_SETTLE;
       if (outranges && ai.closing > 0.5 && dist < pw.range + 1.5) {
@@ -281,7 +298,7 @@
       } else if (dist > chaseAt) {
         goal = { x: foe.x, z: foe.z };
         /* Hard closes the gap with a dash when its short gun is outranged and nearly in range. */
-        if (D.dash && ai.diff === 'hard' && (w.id === 'smg' || w.id === 'shotgun') && w.range <= pw.range &&
+        if (D.dash && ai.diff === 'hard' && styleOf(w).rush && w.range <= pw.range &&
             dist < w.range + SL.C.DASH_DIST * 0.75 && dist > w.range * 0.6 &&
             SL.world.clearPath(bot.x, bot.z, foe.x, foe.z, 0.34)) {
           var ux = (foe.x - bot.x) / dist, uz = (foe.z - bot.z) / dist;
@@ -319,7 +336,7 @@
           ai.lastSeen = null;
         } else if (!vis && ai.wpGoal >= 0 && goal === SL.WAYPOINTS[ai.wpGoal]) {
           ai.wp = ai.wpGoal; ai.wpGoal = -1;
-          ai.holding = true; ai.holdT = 1 + Math.random() * 1.8;
+          ai.holding = true; ai.holdT = (1 + Math.random() * 1.8) * styleOf(SL.WEAPONS[bot.weapon] || SL.WEAPONS.rifle).holdMul;
           ai.holdLook = laneLook(bot);
           look = ai.holdLook;
         }

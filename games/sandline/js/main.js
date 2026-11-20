@@ -574,24 +574,39 @@
     smg: '<polygon points="8,15 22,13 22,22 10,25"/><rect x="22" y="11" width="44" height="12" rx="2"/><rect x="66" y="14" width="24" height="4" rx="1"/><rect x="45" y="23" width="7" height="12" rx="1"/><rect x="30" y="23" width="7" height="9" rx="1" transform="rotate(12 33 23)"/><rect x="58" y="8" width="5" height="3"/>',
     rifle: '<polygon points="4,15 26,12 26,23 8,28"/><rect x="26" y="11" width="50" height="11" rx="2"/><rect x="76" y="14" width="38" height="4" rx="1"/><rect x="52" y="22" width="8" height="12" rx="1" transform="rotate(-10 56 22)"/><rect x="34" y="22" width="7" height="10" rx="1" transform="rotate(12 37 22)"/><rect x="40" y="6" width="14" height="5" rx="1"/>',
     shotgun: '<polygon points="4,16 28,13 28,23 6,29"/><rect x="28" y="12" width="28" height="11" rx="2"/><rect x="56" y="12" width="60" height="5" rx="1"/><rect x="56" y="18" width="48" height="4" rx="1"/><rect x="66" y="16" width="22" height="8" rx="2"/><rect x="34" y="23" width="7" height="9" rx="1" transform="rotate(12 37 23)"/>',
-    sniper: '<polygon points="2,15 30,13 30,23 6,29"/><rect x="30" y="13" width="38" height="9" rx="2"/><rect x="68" y="15" width="50" height="3" rx="1"/><rect x="36" y="4" width="28" height="6" rx="3"/><rect x="42" y="10" width="3" height="3"/><rect x="55" y="10" width="3" height="3"/><rect x="48" y="22" width="7" height="8" rx="1"/><rect x="34" y="22" width="6" height="10" rx="1" transform="rotate(12 37 22)"/><path d="M96 18 L90 32 M96 18 L102 32" stroke="currentColor" stroke-width="2" fill="none"/>'
+    sniper: '<polygon points="2,15 30,13 30,23 6,29"/><rect x="30" y="13" width="38" height="9" rx="2"/><rect x="68" y="15" width="50" height="3" rx="1"/><rect x="36" y="4" width="28" height="6" rx="3"/><rect x="42" y="10" width="3" height="3"/><rect x="55" y="10" width="3" height="3"/><rect x="48" y="22" width="7" height="8" rx="1"/><rect x="34" y="22" width="6" height="10" rx="1" transform="rotate(12 37 22)"/><path d="M96 18 L90 32 M96 18 L102 32" stroke="currentColor" stroke-width="2" fill="none"/>',
+    hmg: '<polygon points="4,15 22,13 22,25 8,28"/><rect x="22" y="11" width="42" height="14" rx="2"/><rect x="64" y="12" width="46" height="3" rx="1"/><rect x="64" y="16.5" width="50" height="3" rx="1"/><rect x="64" y="21" width="46" height="3" rx="1"/><rect x="66" y="10" width="5" height="16" rx="1"/><rect x="98" y="10" width="4" height="16" rx="1"/><rect x="40" y="25" width="16" height="10" rx="1"/><rect x="28" y="25" width="7" height="9" rx="1" transform="rotate(12 31 25)"/><path d="M32 11 V6 H56 V11" stroke="currentColor" stroke-width="2.4" fill="none"/>',
+    hand: '<polygon points="14,10 18,4 23,10"/><rect x="16" y="9" width="22" height="10" rx="2"/><rect x="34" y="7" width="18" height="13" rx="4"/><rect x="52" y="9" width="32" height="7" rx="1.5"/><rect x="79" y="6" width="3" height="3"/><polygon points="17,18 31,18 27,34 13,34"/><path d="M31 19 C33 25 40 25 41 19" stroke="currentColor" stroke-width="2" fill="none"/>'
   };
+
+  /* Stat bars normalised across every gun in the catalog. DPS counts pellets (spread guns at 0.75: not every pellet lands)
+     and uses the Heavy MG's full spun-up rate. */
+  function dpsOf(w) { return w.dmg * w.pellets * (w.pellets > 1 ? 0.75 : 1) / w.rate; }
+  function statNorms() {
+    var n = { range: 1, dps: 1, speed: 1 };
+    SL.WEAPON_ORDER.forEach(function (id) {
+      var w = SL.WEAPONS[id]; if (!w) return;
+      n.range = Math.max(n.range, w.range); n.dps = Math.max(n.dps, dpsOf(w)); n.speed = Math.max(n.speed, w.speed);
+    });
+    return n;
+  }
 
   function buildCards() {
     el.cards.textContent = '';
     el.cardList = [];
-    SL.WEAPON_ORDER.forEach(function (id) {
+    var norm = statNorms();
+    SL.WEAPON_ORDER.forEach(function (id, idx) {
       var w = SL.WEAPONS[id];
       if (!w) return;
-      var dps = w.dmg * w.pellets * (w.pellets > 1 ? 0.75 : 1) / w.rate;
-      var stats = [['Range', w.range / 20], ['Damage/sec', dps / 200], ['Mobility', w.speed / 4.6]];
-      var note = w.needStill > 0 ? 'Must stand still to fire' : '';
+      var stats = [['Range', w.range / norm.range], ['Damage/sec', dpsOf(w) / norm.dps], ['Mobility', w.speed / norm.speed]];
+      var note = w.needStill > 0 ? 'Must stand still to fire' : w.spin > 0 ? 'Spins up before full speed' : '';
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'card';
       b.setAttribute('data-weapon', id);
       b.setAttribute('data-sfx', 'none');
       var label = w.name + '. ' + w.tag + '.' + (note ? ' ' + note + '.' : '');
+      b.setAttribute('aria-keyshortcuts', String(idx + 1));
       var html = '<span class="card-badge"></span>' +
         '<svg class="card-gun" viewBox="0 0 120 36" preserveAspectRatio="xMinYMid meet" fill="currentColor" aria-hidden="true">' + (GUN_SVG[id] || GUN_SVG.rifle) + '</svg>' +
         '<span class="card-name">' + w.name + '</span>' +
@@ -1217,8 +1232,8 @@
       var play = G.state === 'live' || G.state === 'countdown' || G.state === 'roundEnd';
       if (k) { keys[k] = 1; if (play) e.preventDefault(); return; }
       if (e.key === 'Escape' && inMatch()) { e.preventDefault(); openModal('settings'); return; }
-      if (G.state === 'pick' && /^Digit[1-9]$/.test(e.code)) {
-        var id = SL.WEAPON_ORDER[parseInt(e.code.slice(5), 10) - 1];
+      if (G.state === 'pick' && /^(Digit|Numpad)[1-9]$/.test(e.code)) {
+        var id = SL.WEAPON_ORDER[parseInt(e.code.slice(-1), 10) - 1]; // keys 1-6 map to the pick order
         if (id) choose(id);
       }
     });

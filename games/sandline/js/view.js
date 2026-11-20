@@ -10,6 +10,11 @@
   var LEG_YOU = 0x22625c, LEG_FOE = 0x7c2f22;
   var SKIN = 0xf0c49c, METAL = 0x2a262e, METAL2 = 0x3c3742, WOOD = 0x7a4a2a, BRASS = 0xd9a441;
   var RIG_S = 1.25, GUN_Y = 0.8, GUN_Z = 0.14, FX_Y = 1.0;
+  var OLIVE = 0x4d5a3a, DARK = 0x141217;
+  /* per-weapon gun mount in rig space, muzzle flash sizes [min, max, second flash scale], tracer width, recoil kick */
+  var MOUNT = { hand: [0.2, 0.74, 0.17] }, MOUNT_DEF = [0.04, GUN_Y, GUN_Z];
+  var FLASH = { hand: [0.8, 0.95, 0], hmg: [0.26, 0.4, 0.55] }, FLASH_DEF = [0.4, 0.6, 0.6];
+  var TRACER_W = { hmg: 1.4, hand: 1.4 }, KICK = { hmg: 0.45, hand: 1.5 };
   var TRACER_LIFE = 0.09, DMG_LIFE = 0.7, GHOST_LIFE = 1.2, PING_LIFE = 1.2, DROP_TIME = 0.5;
   var N_TRACER = 40, N_PUFF = 64, N_BILL = 48, N_CHIP = 64, N_CASE = 24, N_RING = 8, N_PING = 4, N_DMG = 10, N_ARR = 3;
   var N_BILL_MAX = N_BILL + 6, N_MOTE = 150;
@@ -80,8 +85,8 @@
 
   function scaleHex(hex, k) { tC.setHex(hex).multiplyScalar(k); return tC.getHex(); }
 
-  function torsoGeo(team, hg, trim) {
-    var key = team + '|' + hg + '|' + trim;
+  function torsoGeo(team, hg, trim, pistol) {
+    var key = team + '|' + hg + '|' + trim + (pistol ? '|p' : '');
     if (geoCache[key]) return geoCache[key];
     var L = [], dark = scaleHex(team, 0.6), cap = scaleHex(team, 0.85), legC = team === COL_YOU ? LEG_YOU : LEG_FOE;
     part(L, GEO.hips, legC, 0, 0.42, 0);
@@ -90,8 +95,15 @@
     part(L, GEO.box, dark, -0.27, 0.74, 0, 0, 0, 0, 0.16, 0.36, 0.32);         // pack
     part(L, GEO.box, trim, -0.27, 0.83, 0, 0, 0, 0, 0.17, 0.05, 0.34);         // pack strap
     part(L, GEO.cyl, trim, -0.27, 0.97, 0, Math.PI / 2, 0, 0, 0.06, 0.32, 0.06); // bedroll
-    part(L, GEO.box, team, 0.05, 0.84, 0.2, 0, 0, -0.4, 0.14, 0.2, 0.1);      // right sleeve
-    part(L, GEO.box, team, 0.1, 0.85, -0.04, 0, -0.95, -0.25, 0.4, 0.09, 0.09); // left sleeve
+    if (pistol) {
+      /* one-handed hold: right arm reaches forward to the grip, left arm hangs */
+      part(L, GEO.box, team, 0.11, 0.84, 0.185, 0, 0, -0.84, 0.28, 0.09, 0.09);
+      part(L, GEO.box, team, -0.02, 0.73, -0.24, 0.12, 0, 0.1, 0.09, 0.3, 0.09);
+      part(L, GEO.sph, SKIN, -0.03, 0.56, -0.25, 0, 0, 0, 0.06, 0.06, 0.06);
+    } else {
+      part(L, GEO.box, team, 0.05, 0.84, 0.2, 0, 0, -0.4, 0.14, 0.2, 0.1);      // right sleeve
+      part(L, GEO.box, team, 0.1, 0.85, -0.04, 0, -0.95, -0.25, 0.4, 0.09, 0.09); // left sleeve
+    }
     part(L, GEO.sph, SKIN, 0, 1.12, 0, 0, 0, 0, 0.17, 0.17, 0.17);             // head
     if (hg === 'keffiyeh') {
       part(L, GEO.hemi, 0xeee2c4, 0, 1.11, 0, 0, 0, 0, 0.205, 0.2, 0.205);
@@ -153,6 +165,35 @@
     part(L, GEO.sph, SKIN, 0.0, -0.05, 0, 0, 0, 0, 0.065, 0.065, 0.065);
     part(L, GEO.sph, SKIN, 0.34, -0.04, 0, 0, 0, 0, 0.06, 0.06, 0.06);
     gunGeo.sniper = merge(L); gunTip.sniper = [0.89, 0.01];
+    L = [];                                                                          // Heavy MG
+    part(L, GEO.box, METAL, 0.1, 0, 0, 0, 0, 0, 0.44, 0.16, 0.14);                 // boxy receiver
+    part(L, GEO.box, METAL2, 0.12, 0.1, 0, 0, 0, 0, 0.2, 0.04, 0.06);              // top cover
+    part(L, GEO.box, OLIVE, 0.08, -0.05, -0.13, 0, 0, 0, 0.17, 0.15, 0.1);         // ammo box
+    part(L, GEO.box, BRASS, 0.1, 0.03, -0.075, 0.5, 0, 0, 0.07, 0.03, 0.09);       // belt feed
+    part(L, GEO.cyl, METAL2, 0.43, 0.01, 0, 0, 0, -H, 0.07, 0.24, 0.07);           // barrel shroud
+    part(L, GEO.box, DARK, 0.43, 0.07, 0, 0, 0, 0, 0.2, 0.012, 0.03);              // cooling slots
+    part(L, GEO.box, DARK, 0.43, 0.01, 0.068, 0, 0, 0, 0.2, 0.03, 0.012);
+    part(L, GEO.box, METAL, 0.4, -0.08, 0.035, 0, 0, 0, 0.28, 0.02, 0.02);         // folded bipod
+    part(L, GEO.box, METAL, 0.4, -0.08, -0.035, 0, 0, 0, 0.28, 0.02, 0.02);
+    part(L, GEO.box, METAL2, -0.17, -0.01, 0, 0, 0, 0, 0.14, 0.12, 0.1);           // stock
+    part(L, GEO.sph, SKIN, 0.0, -0.08, 0, 0, 0, 0, 0.07, 0.07, 0.07);
+    part(L, GEO.sph, SKIN, 0.24, -0.08, 0, 0, 0, 0, 0.065, 0.065, 0.065);
+    gunGeo.hmg = merge(L); gunTip.hmg = [0.77, 0.01];
+    L = [];                                                                          // spinning barrel cluster (separate mesh)
+    for (var b = 0; b < 6; b++) {
+      var a = b * Math.PI / 3;
+      part(L, GEO.cyl, METAL2, 0.1, Math.cos(a) * 0.035, Math.sin(a) * 0.035, 0, 0, -H, 0.016, 0.2, 0.016);
+    }
+    part(L, GEO.cyl, METAL, 0.17, 0, 0, 0, 0, -H, 0.055, 0.025, 0.055);
+    part(L, GEO.cyl, METAL, 0.015, 0, 0, 0, 0, -H, 0.05, 0.03, 0.05);
+    gunGeo.hmgBarrel = merge(L);
+    L = [];                                                                          // Hand Cannon
+    part(L, GEO.box, METAL, 0.09, 0.035, 0, 0, 0, 0, 0.3, 0.08, 0.065);            // heavy slide
+    part(L, GEO.box, METAL2, 0.07, -0.015, 0, 0, 0, 0, 0.24, 0.045, 0.06);         // frame
+    part(L, GEO.cyl, METAL2, 0.26, 0.035, 0, 0, 0, -H, 0.032, 0.06, 0.032);        // muzzle
+    part(L, GEO.box, WOOD, -0.025, -0.08, 0, 0, 0, 0.28, 0.065, 0.14, 0.055);      // grip
+    part(L, GEO.sph, SKIN, -0.01, -0.06, 0, 0, 0, 0, 0.07, 0.07, 0.07);
+    gunGeo.hand = merge(L); gunTip.hand = [0.3, 0.035];
   }
 
   function bannerGeo(team, trim) {
@@ -198,11 +239,11 @@
   }
 
   /* ---------- spawners ---------- */
-  function spawnTracer(x0, z0, x1, z1, hex) {
+  function spawnTracer(x0, z0, x1, z1, hex, wm) {
     var dx = x1 - x0, dz = z1 - z0;
     if (dx * dx + dz * dz < 0.0025) return;
     var t = take(tracers);
-    t.t = TRACER_LIFE; t.x0 = x0; t.z0 = z0; t.x1 = x1; t.z1 = z1;
+    t.t = TRACER_LIFE; t.wm = wm || 1; t.x0 = x0; t.z0 = z0; t.x1 = x1; t.z1 = z1;
     setCol(t, hex, 1.1);
   }
   function spawnPuff(x, y, z, vx, vy, vz, life, s0, s1, hex, k) {
@@ -248,6 +289,10 @@
     gun.position.set(0.04, GUN_Y, GUN_Z);
     gun.castShadow = true;
     rig.add(gun);
+    var barrel = new THREE.Mesh(GEO.box, gunMat);
+    barrel.position.set(0.54, 0.01, 0);
+    barrel.visible = false;
+    gun.add(barrel);
     function leg(z) {
       var hip = new THREE.Object3D();
       hip.position.set(0, 0.38, z);
@@ -261,11 +306,11 @@
     var lL = leg(-0.1), lR = leg(0.1);
     scene.add(root);
     return {
-      slot: slot, root: root, rig: rig, torso: torso, mat: mat, gun: gun,
+      slot: slot, root: root, rig: rig, torso: torso, mat: mat, gun: gun, barrel: barrel, spin: 0, pistol: false,
       hipL: lL.hip, legL: lL.leg, hipR: lR.hip, legR: lR.leg,
       team: -1, hg: null, trim: null, weapon: null, emis: -1,
       walk: 0, spd: 0, deadK: 0, px: 0, pz: 0, recoil: 0, reloadK: 0, dropT: 0, land: 0, wasAlive: true, init: false, dashAcc: 0,
-      mx: 0, my: FX_Y, mz: 0, unit: null
+      mx: 0, my: FX_Y, mz: 0, unit: null, mount: MOUNT_DEF
     };
   }
 
@@ -273,13 +318,17 @@
     var eq = u.equip || SL.DEFAULT_EQUIP;
     var team = teamHex(u);
     if (c.unit !== u) { c.unit = u; c.init = false; }
-    if (team !== c.team || eq.headgear !== c.hg || eq.trim !== c.trim) {
-      c.team = team; c.hg = eq.headgear; c.trim = eq.trim;
-      c.torso.geometry = torsoGeo(team, eq.headgear, trimHex(eq.trim));
+    var pistol = u.weapon === 'hand';
+    if (team !== c.team || eq.headgear !== c.hg || eq.trim !== c.trim || pistol !== c.pistol) {
+      c.team = team; c.hg = eq.headgear; c.trim = eq.trim; c.pistol = pistol;
+      c.torso.geometry = torsoGeo(team, eq.headgear, trimHex(eq.trim), pistol);
     }
     if (u.weapon !== c.weapon) {
       c.weapon = u.weapon;
       c.gun.geometry = gunGeo[u.weapon] || gunGeo.rifle;
+      c.mount = MOUNT[u.weapon] || MOUNT_DEF;
+      c.barrel.visible = u.weapon === 'hmg';
+      if (c.barrel.visible) c.barrel.geometry = gunGeo.hmgBarrel;
     }
 
     /* speed from motion (works for locally simulated and network-interpolated units) */
@@ -324,9 +373,24 @@
     c.recoil *= Math.exp(-dt * 16);
     c.reloadK += ((u.reloading && u.alive ? 1 : 0) - c.reloadK) * (1 - Math.exp(-dt * 10));
     c.torso.rotation.z = c.recoil * 0.07;
-    c.gun.position.x = 0.04 - 0.1 * c.recoil;
-    c.gun.rotation.z = c.recoil * 0.22 + c.reloadK * 0.65;
+    var mt = c.mount;
+    c.gun.position.set(mt[0] - (pistol ? 0.05 : 0.1) * c.recoil, mt[1], mt[2]);
+    c.gun.rotation.z = c.recoil * (pistol ? 0.4 : 0.22) + c.reloadK * 0.65;
     c.gun.rotation.x = c.reloadK * 0.8;
+    c.gun.rotation.y = 0;
+    if (c.barrel.visible) {
+      /* Heavy MG spin-up: u.spin01 from combat, else full spin while engaging */
+      var firing = u.alive && !u.reloading && (u.target || u.flashT > 0);
+      var s01 = typeof u.spin01 === 'number' ? SL.clamp(u.spin01, 0, 1) : (firing ? 1 : 0);
+      c.spin += (s01 - c.spin) * (1 - Math.exp(-dt * 8));
+      c.barrel.rotation.x += dt * 45 * c.spin;
+      if (c.spin > 0.85 && firing) {
+        var jit = (c.spin - 0.85) / 0.15;
+        c.gun.position.y += Math.sin(vt * 97) * 0.012 * jit;
+        c.gun.rotation.y = Math.sin(vt * 71) * 0.03 * jit;
+        c.torso.rotation.z += Math.sin(vt * 83) * 0.012 * jit;
+      }
+    }
 
     var e = u.hitT > 0 ? 0.85 : 0;
     if (e !== c.emis) { c.mat.emissive.setRGB(e, e, e); c.emis = e; }
@@ -468,11 +532,11 @@
     var maxD = (w ? w.range : 10) * 1.15;
     var shown = c && charShown(c);
     var hex = tracerHex(u);
-    if (c) c.recoil = 1;
+    if (c) c.recoil = (w && KICK[w.id]) || 1;
     var sx = c && c.init ? c.mx : e.mx, sz = c && c.init ? c.mz : e.mz;
     for (var i = 0; i < e.tracers.length; i++) {
       var t = e.tracers[i];
-      spawnTracer(sx, sz, t.x1, t.z1, hex);
+      spawnTracer(sx, sz, t.x1, t.z1, hex, (w && TRACER_W[w.id]) || 1);
       var ddx = t.x1 - sx, ddz = t.z1 - sz, dl = Math.sqrt(ddx * ddx + ddz * ddz) || 1;
       var bx = -ddx / dl, bz = -ddz / dl;
       if (t.hit) {
@@ -743,7 +807,7 @@
       k = it.t / TRACER_LIFE;
       var dx = it.x1 - it.x0, dz = it.z1 - it.z0, len = Math.sqrt(dx * dx + dz * dz);
       tQ.setFromAxisAngle(UP, -Math.atan2(dz, dx));
-      var w = 0.035 + 0.035 * k;
+      var w = (0.035 + 0.035 * k) * it.wm;
       put(tracerMesh, n++, (it.x0 + it.x1) * 0.5, FX_Y, (it.z0 + it.z1) * 0.5, tQ, len, w, w, it.r * k, it.g * k, it.b * k);
     }
     finish(tracerMesh, n);
@@ -922,8 +986,9 @@
       writeLegs(c, u);
       writeTeamRing(c, u);
       if (c.root.visible && u.alive && u.flashT > 0) {
-        extras.push(c.mx, c.my, c.mz, rnd(0.4, 0.6), Math.random() * 6.28, 0);
-        extras.push(c.mx, c.my, c.mz, rnd(0.25, 0.35), Math.random() * 6.28, 0);
+        var fz = FLASH[u.weapon] || FLASH_DEF, f1 = rnd(fz[0], fz[1]);
+        extras.push(c.mx, c.my, c.mz, f1, Math.random() * 6.28, 0);
+        if (fz[2] > 0) extras.push(c.mx, c.my, c.mz, f1 * fz[2], Math.random() * 6.28, 0);
       }
       /* dash dust streak */
       if (c.root.visible && u.dashT > 0) {

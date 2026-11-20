@@ -51,6 +51,34 @@ const TRACKS = {
   sting_round_lost: [[() => phase('roundEnd', 'b'), 4]],
   sting_match_victory: [[() => phase('matchEnd', 'p'), 9]],
   sting_match_defeat: [[() => phase('matchEnd', 'b'), 9]],
+  /* every gun firing a short burst from the local player (music off), with the sniper laser beep and the new reloads */
+  weapons: [[() => {
+    SL.audio.setBus('music', false); SL.audio.setBus('sfx', true); phase('live');
+    const G = SL.G, p = G.player, W = SL.WEAPONS;
+    const fire = () => SL.emit('shot', { u: p, weapon: W[p.weapon], mx: p.x, mz: p.z - 0.5, tracers: [{ x0: p.x, z0: p.z, x1: p.x + 0.4, z1: p.z - 6, hit: false }] });
+    const at = (sec, fn) => setTimeout(fn, sec * 1000);
+    let t = 0.3;
+    [['smg', 10], ['rifle', 8], ['shotgun', 3], ['sniper', 2]].forEach(([id, n]) => {
+      at(t, () => { p.weapon = id; });
+      for (let i = 0; i < n; i++) {
+        if (id === 'sniper') at(t + 0.05, () => SL.emit('laser', { u: p }));
+        at(t + (id === 'sniper' ? 0.4 : 0), fire);
+        t += W[id].rate;
+      }
+      t += 1.0;
+    });
+    at(t, () => { p.weapon = 'hmg'; p.spin01 = 0; });                       // Heavy MG: spin-up, then full rate
+    let el = 0;
+    while (el < 1.7) { const s = Math.min(1, el / W.hmg.spin); const dt = W.hmg.rate * (W.hmg.spinMul - (W.hmg.spinMul - 1) * s);
+      at(t + el, ((sv) => () => { p.spin01 = sv; fire(); })(s)); el += dt; }
+    for (let k = 0; k < 20; k++) at(t + k * 0.03, ((kk) => () => { p.spin01 = Math.min(1, kk * 0.03 / W.hmg.spin); })(k));
+    t += el + 0.2;
+    at(t, () => { p.spin01 = 0; SL.emit('reload', { u: p }); });
+    t += W.hmg.reload + 0.8;
+    at(t, () => { p.weapon = 'hand'; });
+    for (let i = 0; i < 3; i++) { at(t, fire); t += 0.55; }
+    at(t + 0.3, () => SL.emit('reload', { u: p }));
+  }, 23]],
   /* level reference, not a music track: SFX only, rifle bursts from the player and the bot */
   sfx_ref: [[() => {
     SL.audio.setBus('music', false); SL.audio.setBus('sfx', true); phase('live');

@@ -78,6 +78,24 @@ if (!QUICK) (function unitChecks() {
   for (i = 0; i < 90; i++) SL.combat.updateUnit(a, DT, 1, 0, 1, null, true);
   assert.strictEqual(a.stats.shots, 0, 'needStill blocks firing on the move');
 
+  /* spin-up: Heavy MG's first gaps are rate*spinMul, then it reaches full rate; losing the target resets it */
+  var hm = SL.WEAPONS.hmg;
+  if (hm && hm.spin > 0) {
+    u = pair(); a = u[0]; b = u[1];
+    SL.combat.resetUnit(a, { x: 12.5, z: 33.5 }, 0, 'hmg');
+    SL.combat.resetUnit(b, { x: 15.5, z: 33.5 }, Math.PI, 'rifle');
+    b.hp = 1e9;
+    var times = [];
+    SL.on('shot', function (e) { if (e.u === a) times.push(tNow); });
+    var tNow = 0;
+    for (i = 0; i < 180; i++) { tNow = i * DT; SL.combat.updateUnit(a, DT, 0, 0, 0, null, true); }
+    var g0 = times[1] - times[0], gl = times[times.length - 1] - times[times.length - 2];
+    assert.ok(g0 > hm.rate * hm.spinMul * 0.8, 'first gap slow: ' + g0.toFixed(3));
+    assert.ok(gl < hm.rate * 1.6 && a.spin01 === 1, 'full rate after spin: ' + gl.toFixed(3));
+    b.x = 30; SL.combat.updateUnit(a, DT, 0, 0, 0, null, true);
+    assert.strictEqual(a.spin01, 0, 'spin resets when the target is lost');
+  }
+
   /* dash: distance, cooldown, no firing, event */
   u = pair(); a = u[0]; b = u[1];
   SL.combat.resetUnit(a, { x: 3.5, z: 34.5 }, 0, 'rifle');
@@ -189,18 +207,16 @@ var gunPool = {};  // gun -> [wins, decided rounds], both sides, from the player
 GUNS.forEach(function (g) { gunPool[g] = [0, 0]; });
 var table = {};
 
-console.log('\nBot win rate (decided rounds), ' + ROUNDS + ' rounds per cell. Player keeps its gun 50% of rounds; the bot');
-console.log('counter-picks the player\'s previous gun (blind on the first round of each 7-round match).');
+console.log('\nBot win rate (decided rounds), ' + ROUNDS + ' rounds per cell. Blind picks both ways: the player picks');
+console.log('uniformly, the bot uses its blind-pick weights. Dash is out of play, so no scripted player dashes.');
 console.log('diff    player   botWin  timeouts  avgTTK  NaN  inSolid');
 Object.keys(SL.DIFF).forEach(function (diff) {
-  ['stopper', 'runner', 'dasher'].forEach(function (mode) {
-    var kills = 0, timeouts = 0, tsum = 0, botWins = 0, nan = 0, solid = 0, prev = null, pw = null;
+  ['stopper', 'runner'].forEach(function (mode) {
+    var kills = 0, timeouts = 0, tsum = 0, botWins = 0, nan = 0, solid = 0;
     for (var r = 0; r < ROUNDS; r++) {
-      if (r % 7 === 0) prev = null;
-      pw = pw && Math.random() < 0.5 ? pw : GUNS[Math.floor(Math.random() * GUNS.length)];
-      var bw = SL.bot.pickWeapon(diff, prev);
+      var pw = GUNS[Math.floor(Math.random() * GUNS.length)];
+      var bw = SL.bot.pickWeapon(diff, null);
       var res = runRound(pw, bw, diff, mode, false);
-      prev = pw;
       nan += res.nan; solid += res.solid;
       if (res.winner) {
         kills++; tsum += res.t;
@@ -234,7 +250,7 @@ function printShares(label, pool) {
 /* Bot-vs-bot gun matrix on Normal: every ordered gun pair, so picks are uniform. */
 var mat = {}, mirror = {}, matrixTimeouts = 0;
 GUNS.forEach(function (g) { mirror[g] = [0, 0]; mat[g] = {}; });
-var perPair = Math.max(10, Math.round(ROUNDS / 4));
+var perPair = Math.max(10, Math.round(ROUNDS * 4 / (GUNS.length * GUNS.length)));
 GUNS.forEach(function (ga) {
   GUNS.forEach(function (gb) {
     var wa = 0, n = 0;

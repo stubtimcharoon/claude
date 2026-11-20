@@ -96,17 +96,21 @@ window.SL = window.SL || {};
      laser: seconds a visible aim warning shows (view draws it through fog) before the first shot of an engagement. */
   SL.WEAPONS = {
     smg:     { id: 'smg',     name: 'SMG',     tag: 'Best on the run',           range: 7,   rate: 0.08,  dmg: 16,  pellets: 1, still: 3.5, move: 5,  mag: 30, reload: 1.6, speed: 4.9, needStill: 0,    laser: 0,    gun: [0.50, 0.11, 0.11] },
-    rifle:   { id: 'rifle',   name: 'Rifle',   tag: 'Stop, then shoot',          range: 8.5, rate: 0.135, dmg: 17,  pellets: 1, still: 2.4, move: 9,  mag: 25, reload: 2.0, speed: 4.2, needStill: 0,    laser: 0,    gun: [0.70, 0.10, 0.10] },
-    shotgun: { id: 'shotgun', name: 'Shotgun', tag: 'One shot at point blank',   range: 6.5, rate: 0.55,  dmg: 12,  pellets: 10, still: 10, move: 14, mag: 6,  reload: 2.2, speed: 4.8, needStill: 0,    laser: 0,    gun: [0.55, 0.15, 0.15] },
-    sniper:  { id: 'sniper',  name: 'Sniper',  tag: 'Plant your feet, hold a lane', range: 18, rate: 1.0,   dmg: 95,  pellets: 1, still: 0.5, move: 16, mag: 5,  reload: 2.6, speed: 3.7, needStill: 0.3,  laser: 0.4,  gun: [0.95, 0.09, 0.09] }
+    rifle:   { id: 'rifle',   name: 'Rifle',   tag: 'Stop, then shoot',          range: 8.25, rate: 0.135, dmg: 17,  pellets: 1, still: 2.4, move: 9,  mag: 25, reload: 2.0, speed: 4.2, needStill: 0,    laser: 0,    gun: [0.70, 0.10, 0.10] },
+    shotgun: { id: 'shotgun', name: 'Shotgun', tag: 'One shot at point blank',   range: 6.5, rate: 0.5,   dmg: 13,  pellets: 10, still: 10, move: 14, mag: 6,  reload: 2.2, speed: 4.8, needStill: 0,    laser: 0,    gun: [0.55, 0.15, 0.15] },
+    sniper:  { id: 'sniper',  name: 'Sniper',  tag: 'Plant your feet, hold a lane', range: 18, rate: 1.0,   dmg: 95,  pellets: 1, still: 0.5, move: 16, mag: 5,  reload: 2.6, speed: 3.7, needStill: 0.3,  laser: 0.4,  gun: [0.95, 0.09, 0.09] },
+    /* spin: seconds of continuous firing to reach full rate; the first shots come at rate * spinMul (slower). */
+    hmg:     { id: 'hmg',     name: 'Heavy MG', tag: 'Spins up, then shreds',    range: 9,   rate: 0.07,  dmg: 12,  pellets: 1, still: 3,   move: 12, mag: 60, reload: 3.2, speed: 3.5, needStill: 0,    laser: 0,    spin: 0.6, spinMul: 2.2, gun: [0.85, 0.14, 0.14] },
+    hand:    { id: 'hand',    name: 'Hand Cannon', tag: 'Few shots, big hits',   range: 8.75, rate: 0.5,  dmg: 34,  pellets: 1, still: 1.0, move: 6,  mag: 7,  reload: 1.6, speed: 4.8, needStill: 0,    laser: 0,    gun: [0.36, 0.11, 0.09] }
   };
-  SL.WEAPON_ORDER = ['smg', 'rifle', 'shotgun', 'sniper'];
+  /* Pick-screen order. net.js sends weapons by index into this list, so host and guest must run the same build. */
+  SL.WEAPON_ORDER = ['smg', 'rifle', 'shotgun', 'sniper', 'hmg', 'hand'];
 
   /* Bot tuning per difficulty. dash: whether the bot uses its dash. */
   SL.DIFF = {
-    easy:   { label: 'Easy',   reaction: 0.46, spreadMul: 1.6, hunt: 0.35, cover: false, dash: false },
-    normal: { label: 'Normal', reaction: 0.34, spreadMul: 1.2,  hunt: 0.55, cover: true,  dash: false },
-    hard:   { label: 'Hard',   reaction: 0.28, spreadMul: 0.95, hunt: 0.75, cover: true,  dash: false }
+    easy:   { label: 'Easy',   reaction: 0.39, spreadMul: 1.6, hunt: 0.35, cover: false, dash: false },
+    normal: { label: 'Normal', reaction: 0.27, spreadMul: 1.2,  hunt: 0.55, cover: true,  dash: false },
+    hard:   { label: 'Hard',   reaction: 0.24, spreadMul: 0.95, hunt: 0.75, cover: true,  dash: false }
   };
 
   /* ---------------- cosmetics catalog (frozen ids; profile.js unlocks, view.js renders) ----------------
@@ -131,7 +135,9 @@ window.SL = window.SL || {};
       { id: 'brass', name: 'Brass', color: 0xd9a441, req: { kind: 'kills', weapon: 'rifle', n: 5 },    hint: '5 rifle kills' },
       { id: 'ember', name: 'Ember', color: 0xff6a3d, req: { kind: 'kills', weapon: 'shotgun', n: 5 },  hint: '5 shotgun kills' },
       { id: 'ice',   name: 'Ice',   color: 0x9fe7ff, req: { kind: 'kills', weapon: 'sniper', n: 5 },   hint: '5 sniper kills' },
-      { id: 'neon',  name: 'Neon',  color: 0x7dff9a, req: { kind: 'kills', weapon: 'smg', n: 5 },      hint: '5 SMG kills' }
+      { id: 'neon',  name: 'Neon',  color: 0x7dff9a, req: { kind: 'kills', weapon: 'smg', n: 5 },      hint: '5 SMG kills' },
+      { id: 'heavy', name: 'Heavy', color: 0xc4ccd6, req: { kind: 'kills', weapon: 'hmg', n: 5 },      hint: '5 Heavy MG kills' },
+      { id: 'gilded', name: 'Gilded', color: 0xfff0b0, req: { kind: 'kills', weapon: 'hand', n: 5 },   hint: '5 Hand Cannon kills' }
     ],
     killfx: [
       { id: 'sand',   name: 'Sand burst',  req: null },

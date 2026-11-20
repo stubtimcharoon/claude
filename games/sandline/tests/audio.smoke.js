@@ -110,7 +110,7 @@ async function scenario(label, opts) {
   var ctx = fake && fake.AudioContext.last;
   if (fake) assert.strictEqual(ctx.state, 'running', label + ': context resumed by init');
 
-  var DT = 1 / 60, t = 0, frame = 0, weapons = SL.WEAPON_ORDER, lvls = {}, maxM = 0, maxV = 0;
+  var DT = 1 / 60, t = 0, frame = 0, weapons = SL.WEAPON_ORDER, lvls = {}, maxM = 0, maxV = 0, spun = false;
   function phase(ph, winner) { G.state = ph; G.stateT = 0; SL.emit('round', { phase: ph, winner: winner === undefined ? null : winner }); }
   function run(sec, each) {
     var until = t + sec;
@@ -120,7 +120,7 @@ async function scenario(label, opts) {
       if (each) each();
       A.update(DT);
       var st = A._stats ? A._stats() : null;
-      if (st) { lvls[st.lvl] = true; maxM = Math.max(maxM, st.mvoices); maxV = Math.max(maxV, st.voices); }
+      if (st) { lvls[st.lvl] = true; maxM = Math.max(maxM, st.mvoices); maxV = Math.max(maxV, st.voices); spun = spun || st.spin; }
     }
   }
   function started() { return fake ? fake.stats.started : 0; }
@@ -138,6 +138,11 @@ async function scenario(label, opts) {
   phase('live');
   run(45, function () {
     var lt = t - 79;                                             // seconds into the round
+    if (lt > 12 && lt < 16) {                                    // Heavy MG spin-ups on both sides (whine)
+      p.weapon = 'hmg'; b.weapon = 'hmg';
+      p.spin01 = b.spin01 = Math.min(1, ((lt - 12) % 2) / 0.8);
+      if (frame % 5 === 0) SL.emit('shot', { u: b, weapon: SL.WEAPONS.hmg, mx: b.x, mz: b.z, tracers: [] });
+    } else if (lt >= 16 && lt < 16 + DT) { b.weapon = 'hand'; SL.emit('shot', { u: b, weapon: SL.WEAPONS.hand, mx: b.x, mz: b.z, tracers: [] }); SL.emit('reload', { u: b }); }
     G.roundT = Math.max(0, 45 - lt);
     p.x = 11.5 + Math.sin(t) * 3; p.z = 33.5 - (lt % 20) * 0.5;  // walking: footsteps
     b.x = 12.5 + Math.cos(t); b.z = p.z - 5;
@@ -163,6 +168,7 @@ async function scenario(label, opts) {
     if (lt > 8 && lt < 8 + DT) A.suspend();
     if (lt > 8.2 && lt < 8.2 + DT) A.init();
   });
+  if (fake) assert.ok(spun, label + ': Heavy MG spin-up whine started');
   if (fake) assert.ok(lvls[0] && lvls[1] && lvls[2], label + ': round track reached calm, spotted and last-15-s levels ' + JSON.stringify(lvls));
   SL.emit('death', { unit: b, killer: p });
   phase('roundEnd', 'p');
@@ -195,7 +201,7 @@ async function scenario(label, opts) {
     var s = A._stats();
     assert.ok(s.voices <= 24, label + ': voice cap held (' + s.voices + ')');
     assert.ok(fake.stats.started > 500, label + ': sounds were produced (' + fake.stats.started + ')');
-    if (opts.offline) assert.strictEqual(s.banks, 4, label + ': all shot banks rendered');
+    if (opts.offline) assert.strictEqual(s.banks, 6, label + ': all shot banks rendered');
     else assert.strictEqual(s.banks, 0, label + ': live fallback');
     assert.strictEqual(s.pan, !!opts.panner, label + ': pan detection');
     console.log('ok - ' + label + ' (' + fake.stats.nodes + ' nodes, ' + fake.stats.started + ' sources, ' + fake.stats.offline + ' offline renders, peak music voices ' + maxM + ')');

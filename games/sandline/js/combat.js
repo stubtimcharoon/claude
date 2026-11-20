@@ -10,6 +10,8 @@
     return a;
   }
 
+  function spinDown(u) { u.spinning = false; u.spinT = 0; u.spin01 = 0; }
+
   function weaponOf(u) { return SL.WEAPONS[u.weapon] || SL.WEAPONS.rifle; }
 
   function ensureStats(u) {
@@ -31,6 +33,7 @@
     u.still = 1; u.moving = false; u.noTarget = 0;
     u.dashT = 0; u.dashCd = 0; u.dashX = 0; u.dashZ = 0;
     u.laserT = 0;
+    u.spinT = 0; u.spinning = false; u.spin01 = 0;
     u.flashT = 0; u.hitT = 0; u.deadT = 0;
     ensureStats(u);
   }
@@ -73,7 +76,14 @@
   }
 
   function fire(u, e, w, dt) {
-    u.cd = Math.max(u.cd, -dt) + w.rate;
+    /* Spin-up guns (spin > 0): the gap between shots starts at rate * spinMul and eases linearly to rate over
+       `spin` seconds of continuous firing at a target. */
+    var rate = w.rate;
+    if (w.spin > 0) {
+      if (!u.spinning) { u.spinning = true; u.spinT = 0; u.spin01 = 0; }
+      rate = w.rate * ((w.spinMul || 1) + (1 - (w.spinMul || 1)) * u.spin01);
+    }
+    u.cd = Math.max(u.cd, -dt) + rate;
     u.ammo--;
     u.flashT = 0.05;
     var settle = SL.clamp(u.still / SL.C.STILL_SETTLE, 0, 1);
@@ -171,6 +181,7 @@
       u.flashT = Math.max(0, u.flashT - dt);
       u.hitT = Math.max(0, u.hitT - dt);
       u.laserT = 0;
+      if (u.spinning) spinDown(u);
       return;
     }
     var w = weaponOf(u);
@@ -197,7 +208,7 @@
       u.react = u.reaction;
       if (w.laser > 0) { u.laserT = w.laser; SL.emit('laser', { u: u }); }
     }
-    if (!u.target) u.laserT = 0;
+    if (!u.target) { u.laserT = 0; spinDown(u); }
     u.had = u.target;
     if (u.target) u.noTarget = 0; else u.noTarget += dt;
 
@@ -212,6 +223,9 @@
       u.aim = normAng(u.aim + SL.clamp(d, -maxTurn, maxTurn));
     }
 
+    /* Spin-up advances only while a spun-up gun keeps its target. */
+    if (u.spinning && w.spin > 0) { u.spinT += dt; u.spin01 = Math.min(1, u.spinT / w.spin); }
+
     /* Timers. cd may dip to -dt so the fire cadence carries its remainder across frames. */
     u.cd = Math.max(-dt, u.cd - dt);
     u.react = Math.max(0, u.react - dt);
@@ -225,6 +239,7 @@
       if (u.reloadT <= 0) { u.reloadT = 0; u.reloading = false; u.ammo = w.mag; }
     } else if (u.ammo <= 0 || (!u.target && u.ammo < w.mag && u.noTarget > SL.C.AUTO_RELOAD_IDLE)) {
       u.reloading = true;
+      spinDown(u);
       u.reloadT = w.reload;
       SL.emit('reload', { u: u });
     }

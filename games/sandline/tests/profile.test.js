@@ -45,10 +45,10 @@ var matches = [
   match({ diff: 'hard', seq: 'bbppp', weapon: 'sniper', longest: 14, acc: 0.6 }),  // comeback on Hard
   match({ diff: 'normal', seq: 'pppb'.slice(0, 3), weapon: 'rifle' }),
   match({ diff: 'hard', seq: 'pbbb', weapon: 'sniper', longest: 13 }),
-  match({ diff: 'normal', seq: 'bpp' + 'p', weapon: 'smg' }),
+  match({ diff: 'normal', seq: 'bpp' + 'p', weapon: 'hmg' }),
   match({ diff: 'easy', seq: 'pbpbp', weapon: 'shotgun', hp: [40, 0, 18, 0, 70] }),
   match({ diff: 'normal', seq: 'bpbb', mode: 'host' }),                           // online loss
-  match({ diff: 'normal', seq: 'ppbp', weapon: 'rifle' }),
+  match({ diff: 'normal', seq: 'ppbp', weapon: 'hand' }),
   match({ diff: 'hard', seq: 'ppp', weapon: 'sniper', longest: 15, taken: [0, 0, 40] }),
   match({ diff: 'normal', seq: 'bbpb', weapon: 'smg' }),
   match({ diff: 'normal', seq: 'pbp' + 'p', weapon: 'rifle', mode: 'guest' })
@@ -69,6 +69,9 @@ matches.forEach(function (r, i) {
   console.log(line);
   rows.push(res);
 });
+SL.WEAPON_ORDER.forEach(function (w) { assert.ok(typeof P.data.kills[w] === 'number', 'kill counter for ' + w); });
+assert.ok(P.data.kills.hmg >= 3 && P.data.kills.hand >= 3, 'new guns count kills');
+assert.ok(P.TRACK.some(function (t) { return t.id === 'heavy'; }) && P.TRACK.some(function (t) { return t.id === 'gilded'; }), 'new tracers on the track');
 var avg = totalXp / matches.length;
 console.log('average XP per match: ' + avg.toFixed(1) + ', unlocks in first 10 matches: ' + unlockedFirst10 +
   ', locker ' + P.counts().have + '/' + P.counts().total + (P.isComplete() ? ' (complete)' : ', next: ' + JSON.stringify(P.nextReward())));

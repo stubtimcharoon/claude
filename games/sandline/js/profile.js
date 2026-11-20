@@ -22,8 +22,8 @@
   /* Reward track, cheap-looking first. Catalog items missing here are appended at the end. */
   var TRACK_ORDER = [
     ['trim', 'dune'], ['headgear', 'keffiyeh'], ['tracer', 'brass'], ['headgear', 'goggles'], ['tracer', 'ember'],
-    ['trim', 'oasis'], ['killfx', 'glass'], ['tracer', 'neon'], ['headgear', 'bandit'], ['tracer', 'ice'],
-    ['headgear', 'brass'], ['trim', 'night'], ['killfx', 'banner']
+    ['trim', 'oasis'], ['killfx', 'glass'], ['tracer', 'neon'], ['tracer', 'heavy'], ['headgear', 'bandit'],
+    ['tracer', 'ice'], ['tracer', 'gilded'], ['headgear', 'brass'], ['trim', 'night'], ['killfx', 'banner']
   ];
 
   var MEDALS = [
